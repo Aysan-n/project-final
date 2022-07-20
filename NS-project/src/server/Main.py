@@ -11,7 +11,7 @@ with open(os.getcwd()+"/NS-project/src/server/private_key.pem", 'rb') as file:
 private_key = rsa.PrivateKey.load_pkcs1(data, 'PEM')
 
 messaging = Messaging(private_key)
-messaging.create_socket(2050)
+messaging.create_socket(2051)
 try:
     create()
 except:
