@@ -14,15 +14,15 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         return False
     if client_command in ['mkdir', 'touch', 'cd', 'ls']:
         path = re.findall(r'\s(.+$)', command_string)
-        print(path)
+        #print(path)
 
         if len(path) == 0 and client_command in ['mkdir', 'touch', 'cd']:
-            print(path)
-            print(client_command)
-            print(client_command in ['mkdir', 'touch', 'cd'])
+            # print(path)
+            # print(client_command)
+            # print(client_command in ['mkdir', 'touch', 'cd'])
             return False
         elif len(path) == 0 and client_command == 'ls':
-            print("ok")
+            # print("ok")
             client_message = {'message_type': 'client_command', 'command': client_command, 'path': '',
                               'command_type': client_command, 'enc_seq_num': enc_seq_num,
                               'client_user_name': client_user_name}
@@ -31,22 +31,22 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         if path[0][0] == '/':
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
-        print(directory_name)
+        # print(directory_name)
 
         enc_dir_name = []
 
         for dir_name in directory_name:
-            print("directory name:", dir_name)
+            # print("directory name:", dir_name)
             if dir_name == '..' or dir_name == '.':
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
-                print(record)
-                print("record = ",record)
+                # print(record)
+                # print("record = ",record)
                 if (client_command == 'cd' or client_command == 'ls') and len(record) == 0:
                     return False
                 elif len(record) == 0:
-                    print("SFDXG")
+                    # print("SFDXG")
                     enc_dir_name += [Encryption(dir_name)]
                 else:
                     #print(record)
@@ -110,9 +110,4 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                           'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name}
         messaging.send_message(client_message)
 
-    message = messaging.receive()
-    print(message)
-    if message["status"] == "ok":
-        return True
-    else:
-        return False
+

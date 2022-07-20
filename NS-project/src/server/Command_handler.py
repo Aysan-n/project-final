@@ -6,13 +6,15 @@ import datetime
 import os
 import subprocess
 import re
+import platform
 
 
 def server_command_handler(messaging, connection, client_message):
     client_user_name = client_message['client_user_name']
+    command_type = client_message['command_type']
     record = find_auth_user(client_user_name)
     client_record = find_client(client_user_name)
-    critical_path = os.getcwd() + '/src/server/Repository/' + client_record[3]
+    critical_path = os.getcwd() + '/NS-project/src/server/Repository/' + client_record[3]
 
     if len(record) == 0:  ###عدم احراز اصالت کاربر
         server_message = {'message_type': 'authentication', 'status': 'not authenticated'}
@@ -46,7 +48,7 @@ def server_command_handler(messaging, connection, client_message):
         messaging.send_message(server_message, connection)
         return False  ##کاریر نامعتبر
     else:
-        sequence_number = seq_number+1
+        sequence_number = seq_number + 1
         update_sequence_number(client_user_name, sequence_number)
     if client_message['command_type'] != 'mv':
 
@@ -78,9 +80,55 @@ def server_command_handler(messaging, connection, client_message):
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
             return False  ###دسترسی غیر مجاز
-    print("****")
+
+    operating_system = platform.system()
+
+    cwd = os.getcwd() + "/NS-project/src/server/" + client_record[3] + "/" + record[4]
+
     server_message = {'message_type': 'authentication', 'status': 'ok'}
     messaging.send_message(server_message, connection)
+
+    if command_type == "mv":
+        if operating_system == "Windows":
+            mv_handler(cwd, client_message)
+        else:
+            mv_handler_linux(cwd, client_message)
+
+        server_message = {'message_type': 'command_result', 'status': 'ok'}
+        messaging.send_message(server_message, connection)
+
+    elif command_type == "ls":
+        if operating_system == "Windows":
+            status = ls_handler(cwd, client_message)
+        else:
+            status = ls_handler_linux(cwd, client_message)
+
+        server_message = {'message_type': 'command_result', 'status': status}
+        messaging.send_message(server_message, connection)
+
+    elif command_type == "touch":
+        touch_handler(cwd, client_message)
+        server_message = {'message_type': 'command_result', 'status': 'ok'}
+        messaging.send_message(server_message, connection)
+
+    elif command_type == "rm":
+        if operating_system == "Windows":
+            rm_handler(cwd, client_message)
+        else:
+            rm_handler_linux(cwd, client_message)
+        server_message = {'message_type': 'command_result', 'status': 'ok'}
+        messaging.send_message(server_message, connection)
+
+    elif command_type == "cd":
+        status = cd_handler(cwd, client_message)
+        server_message = {'message_type': 'command_result', 'status': status}
+        messaging.send_message(server_message, connection)
+
+    elif command_type == "mkdir":
+        mkdir_handler(cwd, client_message)
+        server_message = {'message_type': 'command_result', 'status': 'ok'}
+        messaging.send_message(server_message, connection)
+
     return True
 
 
@@ -101,7 +149,7 @@ def ls_handler(cwd_total, client_message):
     else:
         result = re.sub(r'.*\r\n\r\n', '', output.decode())
         result = re.sub(r'^\s{0,1}.*?\.\r\n', '', result)  ########## خروجی رو درست کن سپس بفرست
-        print(result)
+        return result
 
 
 def cd_handler(cwd_total, critical_path, client_message):
@@ -121,7 +169,7 @@ def cd_handler(cwd_total, critical_path, client_message):
     new_cwd = '/' + '/'.join(new_cwd)
     client_user_name = client_message['client_user_name']
     update_cwd(client_user_name, new_cwd)
-    return True
+    return new_cwd
 
 
 def touch_handler(cwd_total, client_message):
@@ -190,7 +238,8 @@ def ls_handler_linux(cwd_total, client_message):
     elif path[0] == '/':
         path = path[1:]
     with cd(cwd_total):
-        process = subprocess.Popen(["ls", "-l", "%s" % path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(["ls", "-l", "%s" % path], shell=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         process.wait()
     output, error = process.communicate()
     if len(error) != 0:
@@ -198,7 +247,7 @@ def ls_handler_linux(cwd_total, client_message):
     else:
         result = re.sub(r'.*\r\n\r\n', '', output.decode())
         result = re.sub(r'^\s{0,1}.*?\.\r\n', '', result)  ########## خروجی رو درست کن سپس بفرست
-        print(result)
+        return result
 
 
 def rm_handler_linux(cwd_total, client_message):
@@ -279,15 +328,6 @@ class cd:
 command = ['dir']
 
 
-# print(subprocess.call("der C:\\",shell=True))
-# from subprocess import check_output
-# a=check_output("dir C:\\", shell=True).decode()
-# print(type(a))
-# process=subprocess.Popen("der C:\\",shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-# process.wait()
-# output, error = process.communicate()
-# print(error,   type(output))
-
 def lcs(S, T):
     m = len(S)
     n = len(T)
@@ -308,7 +348,8 @@ def lcs(S, T):
 
     return lcs_set
 
-# ls_handler_linux("/Users/Aysan/Downloads/NS-project/src/server/Repository",{"path":"/hello"})
+
+
 
 
 def mv_handler(cwd_total, client_message):

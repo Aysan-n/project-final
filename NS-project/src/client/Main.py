@@ -16,7 +16,7 @@ import rsa
 #     65537)
 
 
-with open("/Users/Aysan/Downloads/NS-project/src/client/public_key.pem") as file:
+with open(os.getcwd()+"/NS-project/src/client/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 
@@ -44,11 +44,14 @@ while True:
         if seq_number is not None and session_key is not None:
             username = input("Input your username:")
             command = input("Input command:")
-            ok = command_handler(messaging, command, seq_number, session_key, username)
-
-            if ok:
+            command_handler(messaging, command, seq_number, session_key, username)
+            message = messaging.receive()
+            #print(message)
+            if message["status"] == "ok":
+                #print("okay")
+                message = messaging.receive()
+                print(message["status"])
                 seq_number = seq_number+1
-                print("**")
         else:
             print("Not authenticated yet.")
     else:

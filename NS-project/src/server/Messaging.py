@@ -82,7 +82,6 @@ class Messaging:
         else:
             print("ERROR")
 
-
     def handle_tasks(self):
         while True:
             if len(self.reqs) != 0:
