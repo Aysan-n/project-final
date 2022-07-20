@@ -1,6 +1,6 @@
 import json
 from tkinter.tix import TEXT
-from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number
+from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file
 from seq_number_enc_dec import seq_Decryption, seq_Encryption
 import datetime
 import os
@@ -50,12 +50,15 @@ def server_command_handler(messaging, connection, client_message):
     else:
         sequence_number = seq_number + 1
         update_sequence_number(client_user_name, sequence_number)
+
+
+
     if client_message['command_type'] != 'mv':
 
         path = client_message['path']
         path_list = path.split('/')
 
-        cwd_list = record[4].split('/')[1:]  ##################### جدول باید درست شود
+        cwd_list = record[4].split('/')[1:]  
 
         if path_list.count('..') > (len(cwd_list)) - 1:
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
@@ -80,6 +83,20 @@ def server_command_handler(messaging, connection, client_message):
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
             return False  ###دسترسی غیر مجاز
+
+
+            
+        ########################################################################################### کدجدید
+    if client_message['command_type']=='share':
+        pass
+
+
+
+
+
+
+
+    ######################################################################
 
     operating_system = platform.system()
 
@@ -197,6 +214,7 @@ def touch_handler(cwd_total, client_message):
     output, error = process.communicate()
     if len(error) > 0:
         return False  ########### خطای اجرا کد
+    add_file(file_name,client_message['client_user_name'],new_path)    ###################################new new new new
     return True
 
 
@@ -215,6 +233,7 @@ def rm_handler(cwd_total, client_message):
         path = path[1:]
     path = os.path.join(cwd_total, path)
     path = path.replace('/', '\\')
+    enc_file_name=path.split('\\')[-1]
     if client_message['command_flag'] == '-r':
         process = subprocess.Popen(['rmdir', '/s', '/q', '%s' % path], shell=True, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
@@ -226,6 +245,7 @@ def rm_handler(cwd_total, client_message):
             return True
     try:
         os.remove(path + '.txt')
+        delete_file(enc_file_name,client_message['client_user_name'])       ################################# new new 
         return True
     except:
         return False
@@ -255,6 +275,7 @@ def rm_handler_linux(cwd_total, client_message):
     if path[0] == '/':
         path = path[1:]
     path = os.path.join(cwd_total, path)
+    enc_file_name=path.split('/')[-1]        ############################################### new new
     if client_message['command_flag'] == '-r':
         process = subprocess.Popen(['rm', '-rf', '%s' % path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
@@ -268,6 +289,7 @@ def rm_handler_linux(cwd_total, client_message):
     try:
         print("***")
         os.remove(path + '.txt')
+        delete_file(enc_file_name,client_message['client_user_name'])  ################## new new new
         return True
     except:
         print("**")
@@ -282,6 +304,8 @@ def mv_handler_linux(cwd_total, client_message):
     if dest_path[0] == '/':
         dest_path = dest_path[1:]
     access_path = os.path.join(cwd_total, access_path)
+    enc_file_name=access_path.split('/')[-1]      ######new new new
+    new_path=dest_path                     ######new new new
     dest_path = os.path.join(cwd_total, dest_path)
     if client_message['command_flag'] == '-r':
         try:
@@ -307,6 +331,7 @@ def mv_handler_linux(cwd_total, client_message):
                 print(error.decode())
                 return False
             else:
+                update_file(enc_file_name,client_message['client_user_name'],new_path)   ######new new new
                 return True
         except:
             print(error.decode())
@@ -361,6 +386,8 @@ def mv_handler(cwd_total, client_message):
         dest_path = dest_path[1:]
     access_path = os.path.join(cwd_total, access_path)
     access_path = access_path.replace('/', '\\')
+    enc_file_name=access_path.split('\\')[-1]      ######new new new
+    new_path=dest_path                     ######new new new
     dest_path = os.path.join(cwd_total, dest_path)
     dest_path = dest_path.replace('/', '\\')
     if client_message['command_flag'] == '-r':
@@ -385,6 +412,7 @@ def mv_handler(cwd_total, client_message):
             if len(error) != 0:
                 return False
             else:
+                update_file(enc_file_name,client_message['client_user_name'],new_path)   ######new new new
                 return True
         except:
             return False

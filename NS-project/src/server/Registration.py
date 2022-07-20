@@ -20,10 +20,10 @@ def receive_registration(messaging, connection, message, private_key):
             server_message = {'message_type': 'registration', 'status': 'failed'}
             messaging.send_message(server_message, connection)
         else:
-            enc_username = 'u' + str(random.randint(1, 1000))
             print(messages[0], messages[1], messages[2], messages[3])
             enc_username='U'+'%d' %random.randint(1000,100000000)
             os.makedirs(os.getcwd()+"/NS-project/src/server/Repository/"+'%s' %enc_username)
-            add_client(messages[0], messages[1], messages[2], messages[3], enc_username)
+            os.makedirs(os.getcwd()+"/NS-project/src/server/Repository/"+'%s' %enc_username + '/Shared_file')
+            add_client(messages[0], messages[1], messages[2], messages[3], enc_username, user_public_key)    ########## این قسمت باید درست شود
             server_message = {'message_type': 'registration', 'status': 'ok'}
             messaging.send_message(server_message, connection)

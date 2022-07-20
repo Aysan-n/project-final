@@ -5,12 +5,13 @@ import sqlite3
 def create():
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
-    cursor.execute("""CREATE TABLE clients(
+    cursor.execute("""CREATE TABLE IF NOT EXISTS clients(
             firstname text,
             lastname text,
             username text,
             encrypted_username text,
             password text
+            public_key text,
             );""")
 
     client_directory.commit()
@@ -20,7 +21,7 @@ def create():
 def create_session_key_table():
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
-    cursor.execute("""CREATE TABLE session_keys(
+    cursor.execute("""CREATE TABLE IF NOT EXISTS session_keys(
             user_name text,
             session_key text,
             seq_num  INTEGER,
@@ -30,6 +31,52 @@ def create_session_key_table():
 
     client_directory.commit()
     client_directory.close()
+    
+    ########################           new new new new
+def create_file_table():
+    client_directory = sqlite3.connect('clients.db')
+    cursor = client_directory.cursor()
+    cursor.execute("""CREATE TABLE IF NOT EXISTS file_table(
+            enc_file_name text,
+            user_owner text,
+            shared_user  text,
+            permission_type text,
+            file_path  text,
+            integrity  text,
+            );""")
+
+    client_directory.commit()
+    client_directory.close()
+
+def add_file(enc_file_name,user_owner, file_path):
+    client_directory = sqlite3.connect('clients.db')
+    cursor = client_directory.cursor()
+    cursor.execute("INSERT INTO file_table(enc_file_name,user_owner,file_path) VALUES ('" + enc_file_name + "', '" + user_owner + "', '" +
+                   file_path + "');")
+    client_directory.commit()
+    client_directory.close()
+
+
+def delete_file(enc_file_name,user_owner):
+    connection = sqlite3.connect('clients.db')
+    cursor = connection.cursor()
+    sql_select_query = """DELETE from file_table where enc_file_name=? and user_owner=?"""
+    cursor.execute(sql_select_query, (enc_file_name,user_owner))
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+def update_file(enc_file_name,user_owner,new_path):
+    connection = sqlite3.connect('clients.db')
+    cursor = connection.cursor()
+    sql_select_query = """UPDATE file_table SET file_path=? where enc_file_name=? and user_owner=?"""
+    cursor.execute(sql_select_query, (new_path,enc_file_name,user_owner))
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+
+    ######################################
 
 
 def delete_auth_user(client_user_name):
@@ -46,7 +93,7 @@ def update_sequence_number(username, seq_number):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
     sql_select_query = """UPDATE session_keys SET seq_num=? where user_name=?"""
-    cursor.execute(sql_select_query, (seq_number, username,))
+    cursor.execute(sql_select_query, (seq_number, username))
     connection.commit()
     cursor.close()
     connection.close()
