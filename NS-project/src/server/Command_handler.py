@@ -1,13 +1,14 @@
 from fileinput import filename
 import json
 from tkinter.tix import TEXT
-from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file
+from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file,create_file_table
 from seq_number_enc_dec import seq_Decryption, seq_Encryption
 import datetime
 import os
 import subprocess
 import re
 import platform
+create_file_table()
 
 
 def server_command_handler(messaging, connection, client_message):
@@ -98,16 +99,34 @@ def server_command_handler(messaging, connection, client_message):
             return False     ######## کامند اشتباه
         subscriber_username=client_message['subscriber_username']
         permission_type=client_message['flag']
-        update_shared_file(file_name,client_message['client_user_name'],subscriber_username,permission_type)
         client_record=find_client(subscriber_username)
         if len(client_record)==0:
             return False     ##########کامند اشتباه
+        update_shared_file(file_name,client_message['client_user_name'],subscriber_username,permission_type)
         cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file" 
         with cd(cwd):
             process=subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' %(file_name,client_message['client_user_name'],enc_key,enc_iv,file_name), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             process.wait()
-        
+        output, error = process.communicate()
+        if len(error) != 0:
+            return False  # دستور دچار خطا شد
+        else:    
+            return True                ########## کامند به درستی اجراشد
 
+
+    if client_message['command_type']=='revoke':
+        file_name=client_message['enc_file_name']
+        record=find_file(file_name,client_message['client_user_name'])
+        path=client_message['path']
+        if len(record)==0 or path!=record[0][4]:
+            return False     ######## کامند اشتباه
+        subscriber_username=record[0][2]
+        if len(subscriber_username)!=0:
+            client_record=find_client(subscriber_username)
+            cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" %file_name
+            os.remove(cwd + '.txt')
+        update_shared_file(file_name,client_message['client_user_name'],'','')
+        return True    
 
 
 
