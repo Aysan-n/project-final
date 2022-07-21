@@ -1,3 +1,4 @@
+from fileinput import filename
 import json
 from tkinter.tix import TEXT
 from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file
@@ -14,7 +15,7 @@ def server_command_handler(messaging, connection, client_message):
     command_type = client_message['command_type']
     record = find_auth_user(client_user_name)
     client_record = find_client(client_user_name)
-    critical_path = os.getcwd() + '/NS-project/src/server/Repository/' + client_record[3]
+    critical_path = os.getcwd() + '/src/server/Repository/' + client_record[3]
 
     if len(record) == 0:  ###عدم احراز اصالت کاربر
         server_message = {'message_type': 'authentication', 'status': 'not authenticated'}
@@ -89,6 +90,8 @@ def server_command_handler(messaging, connection, client_message):
         ########################################################################################### کدجدید
     if client_message['command_type']=='share':
         file_name=client_message['enc_file_name']
+        enc_key=client_message['enc_key']
+        enc_iv=client_message['enc_iv']
         record=find_file(file_name,client_message['client_user_name'])
         path=client_message['path']
         if len(record)==0 or path!=record[0][4]:
@@ -96,7 +99,13 @@ def server_command_handler(messaging, connection, client_message):
         subscriber_username=client_message['subscriber_username']
         permission_type=client_message['flag']
         update_shared_file(file_name,client_message['client_user_name'],subscriber_username,permission_type)
-        
+        client_record=find_client(subscriber_username)
+        if len(client_record)==0:
+            return False     ##########کامند اشتباه
+        cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file" 
+        with cd(cwd):
+            process=subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' %(file_name,client_message['client_user_name'],enc_key,enc_iv,file_name), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process.wait()
         
 
 
@@ -109,7 +118,7 @@ def server_command_handler(messaging, connection, client_message):
 
     operating_system = platform.system()
 
-    cwd = os.getcwd() + "/NS-project/src/server/" + client_record[3] + "/" + record[4]
+    cwd = os.getcwd() + "/src/server/Repository/" + client_record[3] + "/" + record[4]
 
     server_message = {'message_type': 'authentication', 'status': 'ok'}
     messaging.send_message(server_message, connection)
