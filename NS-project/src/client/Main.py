@@ -16,7 +16,7 @@ import rsa
 #     65537)
 
 
-with open(os.getcwd()+"/NS-project/src/client/public_key.pem") as file:
+with open(os.getcwd()+"/src/client/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 

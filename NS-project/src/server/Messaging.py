@@ -24,7 +24,7 @@ class Messaging:
     def create_socket(self, port):
         self.socket = socket.socket()
         print("Server socket created")
-        self.socket.bind(('', port))
+        self.socket.bind(('localhost', port))
 
     def start_receiving(self):
         self.socket.listen()

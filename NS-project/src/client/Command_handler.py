@@ -8,7 +8,7 @@ from File_Encryption import seq_Encryption
 def command_handler(messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
     create()
     command_string = command
-    support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv','share']
+    support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv','share','revoke']
     client_command = (re.findall(r'^\w+', command_string))[0]
     enc_seq_num = seq_Encryption(seq_num, session_key)
     if client_command not in support_command:
@@ -145,7 +145,35 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
 
         #### درخواست اولی می تواند در قسمت messaging سرور پرداخته شود
         #################       ارسال آخرین پیام کلاینت
+    
 
+    if client_command=='revoke':
+        path=re.findall(r'^\w+\s(.*?)\s',command_string)
+        if len(path)==0:
+            return False   #### کامند اشتباه
+        if path[0][0] == '/':
+            path[0] = path[0][1:]
+        directory_name = path[0].split('/')
+        file_name=directory_name.pop()
+        record=find_file(file_name)
+        if len(record)==0:
+            return False  #### کامند اشتباه
+        enc_file_name=record[0][1]
+        enc_dir_name = []
+        for dir_name in directory_name:
+            if dir_name == '..' or dir_name == '.':
+                enc_dir_name += [dir_name]
+            else:
+                record = find_file(dir_name)
+                if len(record) == 0:
+                    return False   #####   کامند اشتباه
+                else:
+                    enc_dir_name += [record[0][1]]
+        enc_path= '/'.join(enc_dir_name)
+        client_message = {'message_type': 'client_command',
+                          'path': enc_path,'command_type': client_command,
+                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name}
+        #################       ارسال آخرین پیام کلاینت    
 
 
 

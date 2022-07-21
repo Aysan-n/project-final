@@ -5,13 +5,13 @@ import sqlite3
 def create():
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS clients(
+    cursor.execute("""CREATE TABLE clients(
             firstname text,
             lastname text,
             username text,
             encrypted_username text,
-            password text
-            public_key text,
+            password text,
+            public_key text
             );""")
 
     client_directory.commit()
@@ -21,7 +21,7 @@ def create():
 def create_session_key_table():
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS session_keys(
+    cursor.execute("""CREATE TABLE  session_keys(
             user_name text,
             session_key text,
             seq_num  INTEGER,
@@ -34,19 +34,23 @@ def create_session_key_table():
     
     ########################           new new new new
 def create_file_table():
-    client_directory = sqlite3.connect('clients.db')
-    cursor = client_directory.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS file_table(
-            enc_file_name text,
-            user_owner text,
-            subscriber_username  text,
-            permission_type text,
-            file_path  text,
-            integrity  text,
-            );""")
+        client_directory = sqlite3.connect('clients.db')
+        cursor = client_directory.cursor()
+        cursor.execute("""CREATE TABLE IF NOT EXISTS file_table(
+                enc_file_name text,
+                user_owner text,
+                subscriber_username text,
+                permission_type text,
+                file_path text,
+                integrity text
+                );""")
+        client_directory.commit()
+        client_directory.close()
 
-    client_directory.commit()
-    client_directory.close()
+
+    
+
+    
 
 def add_file(enc_file_name,user_owner, file_path):
     client_directory = sqlite3.connect('clients.db')
@@ -166,11 +170,11 @@ def add_session_key(user_name, session_key, seq_num, joiningDate, cwd):
     client_directory.close()
 
 
-def add_client(first_name, last_name, username, password, enc_username):
+def add_client(first_name, last_name, username, password, enc_username,public_key):
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
     cursor.execute("INSERT INTO clients VALUES ('" + first_name + "', '" + last_name + "', '" +
-                   username + "' , '" + enc_username + "' , '" + password + "');")
+                   username + "' , '" + enc_username + "' , '" + password + "','" + public_key + "');")
     client_directory.commit()
     client_directory.close()
 
