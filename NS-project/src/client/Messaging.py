@@ -13,6 +13,7 @@ class Messaging:
         self.socket.connect(('localhost', port))
 
     def send_message(self, message):
+        #print("sent: "+str(message))
         self.socket.send(serialize(message))
 
     def receive(self):

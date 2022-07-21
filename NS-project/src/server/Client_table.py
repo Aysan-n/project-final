@@ -39,7 +39,7 @@ def create_file_table():
     cursor.execute("""CREATE TABLE IF NOT EXISTS file_table(
             enc_file_name text,
             user_owner text,
-            shared_user  text,
+            subscriber_username  text,
             permission_type text,
             file_path  text,
             integrity  text,
@@ -75,6 +75,24 @@ def update_file(enc_file_name,user_owner,new_path):
     cursor.close()
     connection.close()
 
+def find_file(enc_file_name,user_owner):
+    connection = sqlite3.connect('clients.db')
+    cursor = connection.cursor()
+    sql_select_query = """SELECT * FROM file_table WHERE enc_file_name=? and user_owner=?"""
+    cursor.execute(sql_select_query, (enc_file_name,user_owner))
+    records = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    return records
+
+def update_shared_file(enc_file_name,user_owner,subscriber_username,permission_type):
+    connection = sqlite3.connect('clients.db')
+    cursor = connection.cursor()
+    sql_select_query = """UPDATE file_table SET subscriber_username=?,permission_type=? where enc_file_name=? and user_owner=?"""
+    cursor.execute(sql_select_query, (subscriber_username,permission_type,enc_file_name,user_owner))
+    connection.commit()
+    cursor.close()
+    connection.close()
 
     ######################################
 

@@ -1,6 +1,6 @@
 import json
 from tkinter.tix import TEXT
-from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file
+from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file
 from seq_number_enc_dec import seq_Decryption, seq_Encryption
 import datetime
 import os
@@ -88,7 +88,16 @@ def server_command_handler(messaging, connection, client_message):
             
         ########################################################################################### کدجدید
     if client_message['command_type']=='share':
-        pass
+        file_name=client_message['enc_file_name']
+        record=find_file(file_name,client_message['client_user_name'])
+        path=client_message['path']
+        if len(record)==0 or path!=record[0][4]:
+            return False     ######## کامند اشتباه
+        subscriber_username=client_message['subscriber_username']
+        permission_type=client_message['flag']
+        update_shared_file(file_name,client_message['client_user_name'],subscriber_username,permission_type)
+        
+        
 
 
 

@@ -40,6 +40,7 @@ class Messaging:
             #print("appended")
 
     def send_message(self, message, c):
+        print(message)
         c.send(serialize(message))
 
     def handle_registration(self, connection, request):
@@ -62,6 +63,7 @@ class Messaging:
             message = connection.recv(2048)
             if message != ''.encode():
                 message = deserialize(message)
+                print(message)
                 self.reqs.append(message)
                 self.connections.append(connection)
             else:

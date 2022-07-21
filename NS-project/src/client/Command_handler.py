@@ -135,13 +135,13 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             return False   #### کامند اشتباه
         
         ###############  ارسال درخواست کلاینت برای دریافت کلید عمومی کاربر مشترک
-        client_message={'message_type':'share','subscriber_username':subscriber_username,'enc_seq_num': enc_seq_num}    #####seq num در صورت سخت کردن قضیه نادیده گرفته شود
+        client_message={'message_type':'share','subscriber_username':subscriber_username,'enc_seq_num': enc_seq_num,'client_user_name': client_user_name}    #####seq num در صورت سخت کردن قضیه نادیده گرفته شود
         ###### ارسال درخواست
         ####### دریافت کلید عمومی
         ###########                  رمز کردن , enc_key, iv
-        client_message = {'message_type': 'client_command',
-                          'path': enc_path,'command_type': client_command,'enc_key':کلید رمز شده ,'enc_iv':iv رمز شده ,'flag':flag[0],'subscriber_username':subscriber_username,
-                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name}
+        #client_message = {'message_type': 'client_command',
+        #                  'path': enc_path,'command_type': client_command,'enc_key':کلید رمز شده ,'enc_iv':iv رمز شده ,'flag':flag[0],'subscriber_username':subscriber_username,
+        #                  'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name}
 
         #### درخواست اولی می تواند در قسمت messaging سرور پرداخته شود
         #################       ارسال آخرین پیام کلاینت
