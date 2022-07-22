@@ -16,7 +16,7 @@ def server_command_handler(messaging, connection, client_message):
     command_type = client_message['command_type']
     record = find_auth_user(client_user_name)
     client_record = find_client(client_user_name)
-    critical_path = os.getcwd() + '/src/server/Repository/' + client_record[3]
+    critical_path = os.getcwd() + '/Repository/' + client_record[3]
 
     if len(record) == 0:  ###عدم احراز اصالت کاربر
         server_message = {'message_type': 'authentication', 'status': 'not authenticated'}
@@ -133,11 +133,30 @@ def server_command_handler(messaging, connection, client_message):
 
 
 
+
+
+    if client_message['command_type']=='edit':
+        file_name=client_message['enc_file_name']
+        record=find_file(file_name,client_message['client_user_name'])
+        path=client_message['path']
+        if len(record)==0 or path!=record[0][4]:
+            return False     ######## کامند اشتباه
+        subscriber_username=record[0][2]
+        if len(subscriber_username)!=0:
+            client_record=find_client(subscriber_username)
+            cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" %file_name
+            os.remove(cwd + '.txt')
+        update_shared_file(file_name,client_message['client_user_name'],'','')
+        return True 
+
+
+
+
     ######################################################################
 
     operating_system = platform.system()
 
-    cwd = os.getcwd() + "/src/server/Repository/" + client_record[3] + "/" + record[4]
+    cwd = os.getcwd() + "/Repository/" + client_record[3] + "/" + record[4]
 
     server_message = {'message_type': 'authentication', 'status': 'ok'}
     messaging.send_message(server_message, connection)

@@ -1,6 +1,7 @@
 from multiprocessing import shared_memory
-import re
-from File_Encryption import Encryption
+import re,os,subprocess
+from File_Encryption import Encryption,file_encryption
+from File_Decryption import file_Decryption
 from key_managemnt_table import find_file, create
 from File_Encryption import seq_Encryption
 
@@ -8,7 +9,7 @@ from File_Encryption import seq_Encryption
 def command_handler(messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
     create()
     command_string = command
-    support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv','share','revoke']
+    support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv','share','revoke','edit']
     client_command = (re.findall(r'^\w+', command_string))[0]
     enc_seq_num = seq_Encryption(seq_num, session_key)
     if client_command not in support_command:
@@ -148,7 +149,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
     
 
     if client_command=='revoke':
-        path=re.findall(r'^\w+\s(.*?)\s',command_string)
+        path=re.findall(r'^\w+\s(.*)',command_string)
         if len(path)==0:
             return False   #### کامند اشتباه
         if path[0][0] == '/':
@@ -176,4 +177,54 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         #################       ارسال آخرین پیام کلاینت    
 
 
+
+
+    if client_command=='edit':
+        path=re.findall(r'^\w+\s(.*?)\s{0,1}',command_string)
+        if len(path)==0:
+            return False   #### کامند اشتباه
+        if path[0][0] == '/':
+            path[0] = path[0][1:]
+        directory_name = path[0].split('/')
+        file_name=directory_name.pop()
+        record=find_file(file_name)
+        if len(record)==0:
+            return False  #### کامند اشتباه
+        enc_file_name=record[0][1]
+        enc_key=record[0][2]
+        iv=record[0][3]
+        enc_dir_name = []
+        for dir_name in directory_name:
+            if dir_name == '..' or dir_name == '.':
+                enc_dir_name += [dir_name]
+            elif dir_name=='Shared_file':
+                enc_dir_name += ['Shared_file']
+            else:
+                record = find_file(dir_name)
+                if len(record) == 0:
+                    return False   #####   کامند اشتباه
+                else:
+                    enc_dir_name += [record[0][1]]
+        enc_path= '/'.join(enc_dir_name)
+        client_message = {'message_type': 'client_command',
+                          'path': enc_path,'command_type': client_command,
+                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name}
+        ########    فرستادن پیام و انتظار برای دریافت جواب آن  
+        #######  دریافت محتوای رمز شده
+        if len(enc_message)>0:
+            dec_messgae=file_Decryption(enc_message,enc_key,iv)
+            with open(os.getcwd()+'/src/client/cache_file/cache_file.txt','w') as file:
+                file.write(dec_messgae.decode())
+        process=subprocess.Popen(["notepad.exe", os.getcwd+'/src/client/cache_file/cache_file.txt'])
+        process.wait()
+        with open(os.getcwd+'/src/client/cache_file/cache_file.txt','r') as file:
+            file_content=file.read()
+        with open(os.getcwd+'/src/client/cache_file/cache_file.txt','w') as file: 
+            file.write('')   
+        enc_file=file_encryption(file_content,enc_key,iv)
+        client_message = {'message_type': 'client_command',
+                          'path': enc_path,'command_type': client_command,
+                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name,'enc_file':enc_file}
+
+        ##################  فرستادن، محتوای رمز شده، سمت سرور
 
