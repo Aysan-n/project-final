@@ -3,8 +3,10 @@ import threading
 import time
 import json
 from Authentication import authentication
-from Command_handler import server_command_handler
 from Registration import receive_registration
+from server.Command_handler import server_command_handler
+
+
 def serialize(message):
     return json.dumps(message).encode()
 
@@ -37,7 +39,7 @@ class Messaging:
             print(message)
             self.reqs.append(message)
             self.connections.append(c)
-            #print("appended")
+            # print("appended")
 
     def send_message(self, message, c):
         print(message)
@@ -49,14 +51,17 @@ class Messaging:
     def handle(self, request, connection):
         if request['message_type'] == 'registration':
             self.handle_registration(connection, request)
-            message = connection.recv(2048)
-            if message != ''.encode():
-                message = deserialize(message)
-                print(message)
-                self.reqs.append(message)
-                self.connections.append(connection)
-            else:
-                connection.close()
+            try:
+                message = connection.recv(2048)
+                if message != ''.encode():
+                    message = deserialize(message)
+                    print(message)
+                    self.reqs.append(message)
+                    self.connections.append(connection)
+                else:
+                    connection.close()
+            except:
+                pass
 
         elif request['message_type'] == 'authentication':
             authentication(self, connection)
@@ -89,17 +94,18 @@ class Messaging:
                 connection = self.connections.pop()
                 self.handle(request, connection)
             else:
-                #print(len(self.reqs))
+                # print(len(self.reqs))
                 time.sleep(2)
 
     def start(self):
         thread = threading.Thread(target=self.start_receiving, args=())
         thread.start()
         self.handle_tasks()
+
+
 def serialize(message):
     return json.dumps(message).encode()
 
 
 def deserialize(message):
     return json.loads(message.decode())
-

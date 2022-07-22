@@ -38,7 +38,7 @@ with open(os.getcwd()+"/src/client/public_key.pem") as file:
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 
 messaging = Messaging()
-messaging.create_socket(2051)
+messaging.create_socket(2050)
 
 seq_number = None
 session_key = None

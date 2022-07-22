@@ -8,6 +8,7 @@ import os
 import subprocess
 import re
 import platform
+
 create_file_table()
 
 
@@ -54,7 +55,13 @@ def server_command_handler(messaging, connection, client_message):
         sequence_number = seq_number + 1
         update_sequence_number(client_user_name, sequence_number)
 
-
+    if client_message['command_type'] == 'share':
+        pub_key = client_record[5]
+        print(pub_key)
+        server_message = {'message_type': 'key', 'key': pub_key}
+        messaging.send_message(server_message, connection)
+        client_message = deserialize(connection.recv(2048))
+        print(client_message)
 
     if client_message['command_type'] != 'mv':
 
@@ -90,23 +97,25 @@ def server_command_handler(messaging, connection, client_message):
 
             
         ########################################################################################### کدجدید
-    if client_message['command_type']=='share':
-        file_name=client_message['enc_file_name']
-        enc_key=client_message['enc_key']
-        enc_iv=client_message['enc_iv']
-        record=find_file(file_name,client_message['client_user_name'])
-        path=client_message['path']
-        if len(record)==0 or path!=record[0][4]:
+
+    if client_message['command_type'] == 'share':
+
+        file_name = client_message['file_name']
+        enc_key = client_message['enc_key']
+        enc_iv = client_message['enc_iv']
+        record = find_file(file_name, client_message['client_user_name'])
+        path = client_message['path']
+        if len(record) == 0 or check_path(path,record[0][4],cwd):
             return False     ######## کامند اشتباه
-        subscriber_username=client_message['subscriber_username']
-        permission_type=client_message['flag']
-        client_record=find_client(subscriber_username)
-        if len(client_record)==0:
+        subscriber_username = client_message['subscriber_username']
+        permission_type = client_message['flag']
+        client_record = find_client(subscriber_username)
+        if len(client_record) == 0:
             return False     ##########کامند اشتباه
-        update_shared_file(file_name,client_message['client_user_name'],subscriber_username,permission_type)
-        cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file" 
+        update_shared_file(file_name, client_message['client_user_name'], subscriber_username, permission_type)
+        cwd = os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file"
         with cd(cwd):
-            process=subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' %(file_name,client_message['client_user_name'],enc_key,enc_iv,file_name), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' %(file_name,client_message['client_user_name'],enc_key,enc_iv,file_name), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             process.wait()
         output, error = process.communicate()
         if len(error) != 0:
@@ -114,8 +123,7 @@ def server_command_handler(messaging, connection, client_message):
         else:    
             return True                ########## کامند به درستی اجراشد
 
-
-    if client_message['command_type']=='revoke':
+    if client_message['command_type'] == 'revoke':
         file_name=client_message['enc_file_name']
         record=find_file(file_name,client_message['client_user_name'])
         path=client_message['path']
@@ -275,11 +283,12 @@ def touch_handler(cwd_total, client_message):
     return True
 
 
-# fixed
 def mkdir_handler(cwd_total, client_message):
     path = client_message['path']
+    print(path)
     if path[0] == '/':
         path = path[1:]
+    print(cwd_total)
     with cd(cwd_total):
         return os.makedirs(path)
 
@@ -431,9 +440,6 @@ def lcs(S, T):
     return lcs_set
 
 
-
-
-
 def mv_handler(cwd_total, client_message):
     access_path = client_message['access_path']
     dest_path = client_message['dest_path']
@@ -477,3 +483,6 @@ def mv_handler(cwd_total, client_message):
 def check_path(client_path,file_path,cwd_total):
     client_path=os.path.join(cwd_total,client_path)
     return os.path.normpath(client_path)==os.path.normpath(file_path)
+
+def deserialize(message):
+    return json.loads(message.decode())
