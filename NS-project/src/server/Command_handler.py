@@ -98,6 +98,9 @@ def server_command_handler(messaging, connection, client_message):
 
         ########################################################################################### کدجدید
 
+    server_message = {'message_type': 'authentication', 'status': 'ok'}
+    messaging.send_message(server_message, connection)
+
     if client_message['command_type'] == 'share':
 
         file_name = client_message['file_name']
@@ -112,33 +115,43 @@ def server_command_handler(messaging, connection, client_message):
         client_record = find_client(subscriber_username[0])
         if len(client_record) == 0:
             return False  ##########کامند اشتباه
+
         print(file_name, client_message['client_user_name'], subscriber_username, permission_type)
         update_shared_file(file_name, client_message['client_user_name'], subscriber_username, permission_type)
+
         cwd = os.getcwd() + "/Repository/" + client_record[3] + "/Shared_file"
         print(client_record)
         with cd(cwd):
             process = subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' % (
-            file_name, client_message['client_user_name'], enc_key, enc_iv, file_name), shell=True,
+                file_name, client_message['client_user_name'], enc_key, enc_iv, file_name), shell=True,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             process.wait()
         output, error = process.communicate()
+        server_message = {'message_type': 'command_result', 'status': 'ok'}
+        messaging.send_message(server_message, connection)
+
         if len(error) != 0:
             return False  # دستور دچار خطا شد
         else:
             return True  ########## کامند به درستی اجراشد
 
     if client_message['command_type'] == 'revoke':
-        file_name=client_message['file_name']
-        record=find_file(file_name,client_message['client_user_name'])
-        path=client_message['path']
-        if len(record)==0 or check_path(path,record[0][4],cwd):
-            return False     ######## کامند اشتباه
-        subscriber_username=record[0][2]
-        if len(subscriber_username)!=0:
-            client_record=find_client(subscriber_username)
-            cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" %file_name
+        file_name = client_message['file_name']
+        record = find_file(file_name, client_message['client_user_name'])
+        path = client_message['path']
+        if len(record) == 0 or check_path(path, record[0][4], cwd):
+            return False  ######## کامند اشتباه
+        print(record)
+        subscriber_username = record[2]
+        if len(subscriber_username) != 0:
+            client_record = find_client(subscriber_username)
+            print(subscriber_username)
+            print(client_record)
+            cwd = os.getcwd() + "/Repository/" + client_record[3] + "/Shared_file/%s" % file_name
             os.remove(cwd + '.txt')
-        update_shared_file(file_name, client_message['client_user_name'], '', '')
+        update_shared_file(file_name, client_message['client_user_name'], [], '')
+        server_message = {'message_type': 'command_result', 'status': 'ok'}
+        messaging.send_message(server_message, connection)
         return True
 
 
@@ -158,16 +171,17 @@ def server_command_handler(messaging, connection, client_message):
             if len(record)==0 or check_path(path,record[0][4],cwd) :
                 return False     ######## کامند اشتباه
             try:
-                file_path=path+'/'+file_name+'.txt'
-                with open(os.path.join(cwd,file_path),'r') as file:
-                   file_content=file.read()
+                file_path = path + '/' + file_name + '.txt'
+                with open(os.path.join(cwd, file_path), 'r') as file:
+                    file_content = file.read()
             except:
-                return False    ############ دلیل خطا به مسیر  ربط داره
-            if len(file_content)>0:
-                hash_string=(hashlib.sha1(private_key.encode()+file_content.encode())).hexdigest() 
-                if hash_string!=record[0][5]:
-                    return False      #########     صحت در مخزن نقض شده است
-            server_message={'message_type':'command','Shared_file':'False','enc_message':file_content}     ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.     
+                return False  ############ دلیل خطا به مسیر  ربط داره
+            if len(file_content) > 0:
+                hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
+                if hash_string != record[0][5]:
+                    return False  #########     صحت در مخزن نقض شده است
+            server_message = {'message_type': 'command', 'Shared_file': 'False',
+                              'enc_message': file_content}  ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.
             ################## انتظار برای دریافت پیام
             ###############   پیام کلاینت دریافت شد
             enc_file=client_message['enc_file']   
@@ -175,8 +189,8 @@ def server_command_handler(messaging, connection, client_message):
             if hash_string!=record[0][5]:
                 update_file_integrity(file_name,client_message['client_user_name'],hash_string)
                 try:
-                    with open(os.path.join(cwd,file_path),'w') as file: 
-                        file.write(enc_file) 
+                    with open(os.path.join(cwd, file_path), 'w') as file:
+                        file.write(enc_file)
                     return True
                 except:
                     return False
@@ -232,9 +246,6 @@ def server_command_handler(messaging, connection, client_message):
         ######################################################################
 
     operating_system = platform.system()
-
-    server_message = {'message_type': 'authentication', 'status': 'ok'}
-    messaging.send_message(server_message, connection)
 
     if command_type == "mv":
         if operating_system == "Windows":
@@ -346,6 +357,7 @@ def touch_handler(cwd_total, client_message):
     add_file(file_name, client_message['client_user_name'],
              new_path)  ###################################new new new new
 
+
 def mkdir_handler(cwd_total, client_message):
     path = client_message['path']
     print(path)
@@ -456,11 +468,12 @@ def mv_handler_linux(cwd_total, client_message):
                                        stderr=subprocess.PIPE)
             process.wait()
             output, error = process.communicate()
+            update_file(enc_file_name, client_message['client_user_name'], new_path)  ######new new new
             if len(error) != 0:
                 print(error.decode())
                 return False
             else:
-                update_file(enc_file_name, client_message['client_user_name'], new_path)  ######new new new
+
                 return True
         except:
             print(error.decode())
@@ -535,10 +548,12 @@ def mv_handler(cwd_total, client_message):
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             process.wait()
             output, error = process.communicate()
+            update_file(enc_file_name, client_message['client_user_name'], new_path)
+
             if len(error) != 0:
                 return False
             else:
-                update_file(enc_file_name, client_message['client_user_name'], new_path)  ######new new new
+                ######new new new
                 return True
         except:
             return False

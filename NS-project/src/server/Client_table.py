@@ -81,6 +81,7 @@ def update_file(enc_file_name, user_owner, new_path):
     cursor.close()
     connection.close()
 
+
 def update_file_integrity(enc_file_name, user_owner, integrity):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
@@ -115,13 +116,19 @@ def find_file(enc_file_name, user_owner):
 def update_shared_file(enc_file_name, user_owner, subscriber_username, permission_type):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
-    sql_select_query = """UPDATE file_table SET subscriber_username='"""+subscriber_username[0]+""""', 
-    permission_type='"""+permission_type+""""' WHERE enc_file_name='"""+enc_file_name+""""' AND 
-    user_owner='"""+user_owner +"""';"""
-    cursor.execute(sql_select_query)
+    sql_select_query = """UPDATE file_table SET subscriber_username=?, 
+    permission_type=? WHERE enc_file_name=? and
+    user_owner=?"""
+    if len(subscriber_username) > 0:
+        cursor.execute(sql_select_query, (subscriber_username[0], permission_type, enc_file_name,user_owner))
+    else:
+        cursor.execute(sql_select_query, ("", permission_type, enc_file_name, user_owner))
     connection.commit()
+
+
     cursor.close()
     connection.close()
+    print("HAPPy")
 
     ######################################
 
