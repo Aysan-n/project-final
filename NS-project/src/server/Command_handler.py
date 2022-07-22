@@ -1,7 +1,8 @@
 from fileinput import filename
 import json
 from tkinter.tix import TEXT
-from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file,create_file_table
+from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number, add_file, \
+    delete_file, update_file, find_file, update_shared_file, create_file_table
 from seq_number_enc_dec import seq_Decryption, seq_Encryption
 import datetime
 import os
@@ -9,10 +10,9 @@ import subprocess
 import re
 import platform
 
-create_file_table()
-
 
 def server_command_handler(messaging, connection, client_message):
+    create_file_table()
     client_user_name = client_message['client_user_name']
     command_type = client_message['command_type']
     record = find_auth_user(client_user_name)
@@ -68,7 +68,7 @@ def server_command_handler(messaging, connection, client_message):
         path = client_message['path']
         path_list = path.split('/')
 
-        cwd_list = record[4].split('/')[1:]  
+        cwd_list = record[4].split('/')[1:]
 
         if path_list.count('..') > (len(cwd_list)) - 1:
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
@@ -94,8 +94,6 @@ def server_command_handler(messaging, connection, client_message):
             messaging.send_message(server_message, connection)
             return False  ###دسترسی غیر مجاز
 
-
-            
         ########################################################################################### کدجدید
 
     if client_message['command_type'] == 'share':
@@ -105,67 +103,59 @@ def server_command_handler(messaging, connection, client_message):
         enc_iv = client_message['enc_iv']
         record = find_file(file_name, client_message['client_user_name'])
         path = client_message['path']
-        if len(record) == 0 or check_path(path,record[0][4],cwd):
-            return False     ######## کامند اشتباه
+        if len(record) == 0 or check_path(path, record[0][4], cwd):
+            return False  ######## کامند اشتباه
         subscriber_username = client_message['subscriber_username']
         permission_type = client_message['flag']
-        client_record = find_client(subscriber_username)
+        client_record = find_client(subscriber_username[0])
         if len(client_record) == 0:
-            return False     ##########کامند اشتباه
+            return False  ##########کامند اشتباه
+        print(file_name, client_message['client_user_name'], subscriber_username, permission_type)
         update_shared_file(file_name, client_message['client_user_name'], subscriber_username, permission_type)
-        cwd = os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file"
+        cwd = os.getcwd() + "/Repository/" + client_record[3] + "/Shared_file"
+        print(client_record)
         with cd(cwd):
-            process = subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' %(file_name,client_message['client_user_name'],enc_key,enc_iv,file_name), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen('echo "%s/%s/%s/%s" > %s.txt' % (
+            file_name, client_message['client_user_name'], enc_key, enc_iv, file_name), shell=True,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             process.wait()
         output, error = process.communicate()
         if len(error) != 0:
             return False  # دستور دچار خطا شد
-        else:    
-            return True                ########## کامند به درستی اجراشد
+        else:
+            return True  ########## کامند به درستی اجراشد
 
     if client_message['command_type'] == 'revoke':
-        file_name=client_message['enc_file_name']
-        record=find_file(file_name,client_message['client_user_name'])
-        path=client_message['path']
-        if len(record)==0 or path!=record[0][4]:
-            return False     ######## کامند اشتباه
-        subscriber_username=record[0][2]
-        if len(subscriber_username)!=0:
-            client_record=find_client(subscriber_username)
-            cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" %file_name
+        file_name = client_message['enc_file_name']
+        record = find_file(file_name, client_message['client_user_name'])
+        path = client_message['path']
+        if len(record) == 0 or path != record[0][4]:
+            return False  ######## کامند اشتباه
+        subscriber_username = record[0][2]
+        if len(subscriber_username) != 0:
+            client_record = find_client(subscriber_username)
+            cwd = os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" % file_name
             os.remove(cwd + '.txt')
-        update_shared_file(file_name,client_message['client_user_name'],'','')
-        return True    
+        update_shared_file(file_name, client_message['client_user_name'], '', '')
+        return True
 
-
-
-
-
-
-
-
-    if client_message['command_type']=='edit':
-        file_name=client_message['enc_file_name']
-        record=find_file(file_name,client_message['client_user_name'])
-        path=client_message['path']
-        if len(record)==0 or path!=record[0][4]:
-            return False     ######## کامند اشتباه
-        subscriber_username=record[0][2]
-        if len(subscriber_username)!=0:
-            client_record=find_client(subscriber_username)
-            cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" %file_name
+    if client_message['command_type'] == 'edit':
+        file_name = client_message['enc_file_name']
+        record = find_file(file_name, client_message['client_user_name'])
+        path = client_message['path']
+        if len(record) == 0 or path != record[0][4]:
+            return False  ######## کامند اشتباه
+        subscriber_username = record[0][2]
+        if len(subscriber_username) != 0:
+            client_record = find_client(subscriber_username)
+            cwd = os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" % file_name
             os.remove(cwd + '.txt')
-        update_shared_file(file_name,client_message['client_user_name'],'','')
-        return True 
+        update_shared_file(file_name, client_message['client_user_name'], '', '')
+        return True
 
-
-
-
-    ######################################################################
+        ######################################################################
 
     operating_system = platform.system()
-
-    
 
     server_message = {'message_type': 'authentication', 'status': 'ok'}
     messaging.send_message(server_message, connection)
@@ -277,11 +267,8 @@ def touch_handler(cwd_total, client_message):
                                    stderr=subprocess.PIPE)
         process.wait()
     output, error = process.communicate()
-    if len(error) > 0:
-        return False  ########### خطای اجرا کد
-    add_file(file_name,client_message['client_user_name'],new_path)    ###################################new new new new
-    return True
-
+    add_file(file_name, client_message['client_user_name'],
+             new_path)  ###################################new new new new
 
 def mkdir_handler(cwd_total, client_message):
     path = client_message['path']
@@ -299,7 +286,7 @@ def rm_handler(cwd_total, client_message):
         path = path[1:]
     path = os.path.join(cwd_total, path)
     path = path.replace('/', '\\')
-    enc_file_name=path.split('\\')[-1]
+    enc_file_name = path.split('\\')[-1]
     if client_message['command_flag'] == '-r':
         process = subprocess.Popen(['rmdir', '/s', '/q', '%s' % path], shell=True, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
@@ -311,7 +298,7 @@ def rm_handler(cwd_total, client_message):
             return True
     try:
         os.remove(path + '.txt')
-        delete_file(enc_file_name,client_message['client_user_name'])       ################################# new new 
+        delete_file(enc_file_name, client_message['client_user_name'])  ################################# new new
         return True
     except:
         return False
@@ -341,7 +328,7 @@ def rm_handler_linux(cwd_total, client_message):
     if path[0] == '/':
         path = path[1:]
     path = os.path.join(cwd_total, path)
-    enc_file_name=path.split('/')[-1]        ############################################### new new
+    enc_file_name = path.split('/')[-1]  ############################################### new new
     if client_message['command_flag'] == '-r':
         process = subprocess.Popen(['rm', '-rf', '%s' % path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
@@ -355,7 +342,7 @@ def rm_handler_linux(cwd_total, client_message):
     try:
         print("***")
         os.remove(path + '.txt')
-        delete_file(enc_file_name,client_message['client_user_name'])  ################## new new new
+        delete_file(enc_file_name, client_message['client_user_name'])  ################## new new new
         return True
     except:
         print("**")
@@ -370,9 +357,9 @@ def mv_handler_linux(cwd_total, client_message):
     if dest_path[0] == '/':
         dest_path = dest_path[1:]
     access_path = os.path.join(cwd_total, access_path)
-    enc_file_name=access_path.split('/')[-1]      ######new new new
+    enc_file_name = access_path.split('/')[-1]  ######new new new
     dest_path = os.path.join(cwd_total, dest_path)
-    new_path=dest_path 
+    new_path = dest_path
     if client_message['command_flag'] == '-r':
         try:
             process = subprocess.Popen(['mv', '%s' % access_path, '%s' % dest_path], shell=True, stdout=subprocess.PIPE,
@@ -397,7 +384,7 @@ def mv_handler_linux(cwd_total, client_message):
                 print(error.decode())
                 return False
             else:
-                update_file(enc_file_name,client_message['client_user_name'],new_path)   ######new new new
+                update_file(enc_file_name, client_message['client_user_name'], new_path)  ######new new new
                 return True
         except:
             print(error.decode())
@@ -449,9 +436,9 @@ def mv_handler(cwd_total, client_message):
         dest_path = dest_path[1:]
     access_path = os.path.join(cwd_total, access_path)
     access_path = access_path.replace('/', '\\')
-    enc_file_name=access_path.split('\\')[-1]      ######new new new
+    enc_file_name = access_path.split('\\')[-1]  ######new new new
     dest_path = os.path.join(cwd_total, dest_path)
-    new_path=dest_path                     ######new new new
+    new_path = dest_path  ######new new new
     dest_path = dest_path.replace('/', '\\')
     if client_message['command_flag'] == '-r':
         try:
@@ -475,14 +462,16 @@ def mv_handler(cwd_total, client_message):
             if len(error) != 0:
                 return False
             else:
-                update_file(enc_file_name,client_message['client_user_name'],new_path)   ######new new new
+                update_file(enc_file_name, client_message['client_user_name'], new_path)  ######new new new
                 return True
         except:
             return False
 
-def check_path(client_path,file_path,cwd_total):
-    client_path=os.path.join(cwd_total,client_path)
-    return os.path.normpath(client_path)==os.path.normpath(file_path)
+
+def check_path(client_path, file_path, cwd_total):
+    client_path = os.path.join(cwd_total, client_path)
+    return os.path.normpath(client_path) == os.path.normpath(file_path)
+
 
 def deserialize(message):
     return json.loads(message.decode())
