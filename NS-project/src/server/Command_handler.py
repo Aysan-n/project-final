@@ -1,7 +1,7 @@
 from fileinput import filename
 import json
 from tkinter.tix import TEXT
-from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client,update_file_integrity, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file,create_file_table
+from Client_table import find_auth_user,find_shared_file, delete_auth_user, update_cwd, find_client,update_file_integrity, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file,create_file_table
 from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number, add_file, \
     delete_file, update_file, find_file, update_shared_file, create_file_table
 from seq_number_enc_dec import seq_Decryption, seq_Encryption
@@ -152,8 +152,8 @@ def server_command_handler(messaging, connection, client_message):
         with open(os.getcwd()+'/private_key.pem','r') as file:
                    private_key=file.read()
         path=client_message['path']
+        file_name=client_message['file_name']
         if 'Shared_file' not in path:
-            file_name=client_message['file_name']
             record=find_file(file_name,client_message['client_user_name'])
             if len(record)==0 or check_path(path,record[0][4],cwd) :
                 return False     ######## کامند اشتباه
@@ -170,7 +170,7 @@ def server_command_handler(messaging, connection, client_message):
             server_message={'message_type':'command','Shared_file':'False','enc_message':file_content}     ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.     
             ################## انتظار برای دریافت پیام
             ###############   پیام کلاینت دریافت شد
-            ###enc_file=client_message['enc_file']   
+            enc_file=client_message['enc_file']   
             hash_string=(hashlib.sha1(private_key.encode()+enc_file.encode())).hexdigest() 
             if hash_string!=record[0][5]:
                 update_file_integrity(file_name,client_message['client_user_name'],hash_string)
@@ -181,9 +181,54 @@ def server_command_handler(messaging, connection, client_message):
                 except:
                     return False
         else:
-            path
+            record=find_shared_file(file_name,client_message['client_user_name'])
+            if len(record)==0:
+                return False            
+            try:
+                file_path=record[0][4]+'/'+file_name+'.txt'
+                with open(file_path,'r') as file:
+                   file_content=file.read()
+            except:
+                return False    ############ دلیل خطا به مسیر  ربط داره            
+            if len(file_content)>0:
+                hash_string=(hashlib.sha1(private_key.encode()+file_content.encode())).hexdigest() 
+                if hash_string!=record[0][5]:
+                    return False      #########     صحت در مخزن نقض شده است
+            try:
+                subscriber_file_path=path+'/'+file_name+'.txt'
+                with open(os.path.join(cwd,subscriber_file_path),'r') as file:
+                   shared_file_content=file.read()
+            except:
+                return False    ############ دلیل خطا به مسیر  ربط داره    
+            if len(shared_file_content)==0: 
+                return False     ###############         خطا در محتوای فایل مشترک
+            shared_file_content=shared_file_content.rstrip('\n').replace('"','').strip().split('/')
+            if shared_file_content[0]!=file_name or shared_file_content[1]!=record[0][1]:
+                return False     ###############         خطا در محتوای فایل مشترک
+            permission_type=record[0][3]
+            if len(permission_type)==0:
+                return False     ########    خطا در ذخیره ی فایل مشترک
+            if permission_type in ['rw','wr']:
+                server_message={'message_type':'command','Shared_file':'True','permission_type':permission_type,'enc_message':file_content,'enc_key':shared_file_content[2],'enc_iv':shared_file_content[3]}       ####  در صورت نیاز سکوئنس نامبر
+                ###################   پیام فرستاده می شود
+                 # منتظر جواب از سمت کلاینت 
+                enc_file=client_message['enc_file']   
+                hash_string=(hashlib.sha1(private_key.encode()+enc_file.encode())).hexdigest() 
+                if hash_string!=record[0][5]:
+                    update_file_integrity(file_name,record[0][1],hash_string)
+                    try:
+                        file_path=record[0][4]+file_name+'.txt'
+                        with open(file_path,'w') as file: 
+                             file.write(enc_file) 
+                        return True
+                    except:
+                        return False 
+            else:
+                server_message={'message_type':'command','Shared_file':'True','permission_type':permission_type,'enc_message':file_content,'enc_key':shared_file_content[2],'enc_iv':shared_file_content[3]}       ####  در صورت نیاز سکوئنس نامبر
+                ############### فرستادن پیام سرور
+                ###############  پایان. نیاز به انتظار نمی باشد
 
-
+             
         ######################################################################
 
     operating_system = platform.system()

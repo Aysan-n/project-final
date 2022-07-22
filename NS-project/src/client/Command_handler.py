@@ -1,11 +1,9 @@
 from multiprocessing import shared_memory
-import re
-
-import rsa
-
-from File_Encryption import Encryption
+import re,subprocess,os,rsa
+from File_Encryption import Encryption,file_encryption,seq_Encryption
+from File_Decryption import file_Decryption
 from key_managemnt_table import find_file, create
-from File_Encryption import seq_Encryption
+
 
 
 def command_handler(messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
@@ -107,7 +105,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
     ##################دستور جدید
     if client_command == 'share':
         flag = re.findall(r'-(\w{1,2})\s{0,1}$',command_string)
-        if len(flag) == 0 or len(flag[0])>2 or (flag[0] not in ['rw','wr','r','w']):
+        if len(flag) == 0 or len(flag[0])>2 or (flag[0] not in ['rw','wr','r']):
             print("ERROR: Permisions not right.")
             return False  ###### کامند اشتباه
         path = re.findall(r'^\w+\s(.*?)\s',command_string)
@@ -225,7 +223,39 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         if 'shared_file'in path:
             client_message = {'message_type': 'client_command',
                           'path': enc_path,'command_type': client_command,
-                          'enc_seq_num': enc_seq_num,'Shared_file':'True','client_user_name': client_user_name,'file_name':enc_file_name}        
+                          'enc_seq_num': enc_seq_num,'Shared_file':'True','client_user_name': client_user_name,'file_name':enc_file_name}  
+            ###############    فرستادن پیام وانتظار برای دریافت آن
+            ################  دریافت پیام
+            with open(os.getcwd()+'/Aysan_private.txt','r') as file:
+                key_data=file.read()
+            private_key=rsa.PrivateKey.load_pkcs1(bytes.fromhex(key_data),'PEM')
+            enc_key=server_message['enc_key']
+            enc_iv=server_message['enc_iv']
+            key=rsa.decrypt(bytes.fromhex(enc_key),private_key).decode()
+            iv=rsa.decrypt(bytes.fromhex(enc_iv),private_key).decode()
+            enc_message=server_message['enc_message']
+            if len(enc_message)>0:
+                dec_messgae=file_Decryption(enc_message,key,iv)
+                if server_message['permission_type']=='r':
+                    return dec_messgae      #################   در حالتی که فقط مجوز خواندن وجود دارد، متن پرینت می شود
+                else:
+                    with open(os.getcwd()+'/src/client/cache_file/cache_file.txt','w') as file:
+                        file.write(dec_messgae.decode())
+            elif server_message['permission_type']=='r':
+                return None
+            process=subprocess.Popen(["notepad.exe",os.getcwd+'/src/client/cache_file/cache_file.txt'])
+            process.wait()
+            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','r') as file:
+                file_content=file.read()
+            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','w') as file: 
+                file.write('')   
+            enc_file=file_encryption(file_content,key,iv)
+            client_message={'message_type': 'client_command',         ###### پارامتر های این پیام براساس شرایط، می تواند بر اساس پیام رسیده شده از سرور فرستاده شود
+                            'path': enc_path,'command_type': client_command,
+                            'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name,'enc_file':enc_file}
+            ######## فرستادن پیام کلاینت
+
+                   
         else:
             client_message = {'message_type': 'client_command',
                           'path': enc_path,'command_type': client_command,
@@ -233,20 +263,20 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
 
         ########    فرستادن پیام و انتظار برای دریافت جواب آن  
         #######  دریافت محتوای رمز شده
-        if len(enc_message)>0:
-            dec_messgae=file_Decryption(enc_message,enc_key,iv)
-            with open(os.getcwd()+'/src/client/cache_file/cache_file.txt','w') as file:
-                file.write(dec_messgae.decode())
-        process=subprocess.Popen(["notepad.exe", os.getcwd+'/src/client/cache_file/cache_file.txt'])
-        process.wait()
-        with open(os.getcwd+'/src/client/cache_file/cache_file.txt','r') as file:
-            file_content=file.read()
-        with open(os.getcwd+'/src/client/cache_file/cache_file.txt','w') as file: 
-            file.write('')   
-        enc_file=file_encryption(file_content,enc_key,iv)
-        client_message = {'message_type': 'client_command',
-                          'path': enc_path,'command_type': client_command,
-                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name,'enc_file':enc_file}
+            if len(enc_message)>0:
+                dec_messgae=file_Decryption(enc_message,enc_key,iv)
+                with open(os.getcwd()+'/src/client/cache_file/cache_file.txt','w') as file:
+                    file.write(dec_messgae.decode())
+            process=subprocess.Popen(["notepad.exe",os.getcwd+'/src/client/cache_file/cache_file.txt'])
+            process.wait()
+            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','r') as file:
+                file_content=file.read()
+            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','w') as file: 
+                file.write('')   
+            enc_file=file_encryption(file_content,enc_key,iv)
+            client_message = {'message_type': 'client_command',
+                              'path': enc_path,'command_type': client_command,
+                              'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name,'enc_file':enc_file}
 
         ##################  فرستادن، محتوای رمز شده، سمت سرور
 

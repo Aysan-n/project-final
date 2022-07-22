@@ -91,6 +91,16 @@ def update_file_integrity(enc_file_name, user_owner, integrity):
     connection.close()
 
 
+def find_shared_file(enc_file_name, subscriber_username):
+    connection = sqlite3.connect('clients.db')
+    cursor = connection.cursor()
+    sql_select_query = """SELECT * FROM file_table WHERE enc_file_name=? and subscriber_username=?"""
+    cursor.execute(sql_select_query, (enc_file_name, subscriber_username))
+    records = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    return records
+
 def find_file(enc_file_name, user_owner):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
