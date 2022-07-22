@@ -4,7 +4,7 @@ import time
 import json
 from Authentication import authentication
 from Registration import receive_registration
-from server.Command_handler import server_command_handler
+from Command_handler import server_command_handler
 
 
 def serialize(message):

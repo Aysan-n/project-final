@@ -1,13 +1,14 @@
 from fileinput import filename
 import json
 from tkinter.tix import TEXT
-from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file,create_file_table
+from Client_table import find_auth_user, delete_auth_user, update_cwd, find_client,update_file_integrity, update_sequence_number,add_file,delete_file,update_file,find_file,update_shared_file,create_file_table
 from seq_number_enc_dec import seq_Decryption, seq_Encryption
 import datetime
 import os
 import subprocess
 import re
 import platform
+import hashlib
 
 create_file_table()
 
@@ -124,10 +125,10 @@ def server_command_handler(messaging, connection, client_message):
             return True                ########## کامند به درستی اجراشد
 
     if client_message['command_type'] == 'revoke':
-        file_name=client_message['enc_file_name']
+        file_name=client_message['file_name']
         record=find_file(file_name,client_message['client_user_name'])
         path=client_message['path']
-        if len(record)==0 or path!=record[0][4]:
+        if len(record)==0 or check_path(path,record[0][4],cwd):
             return False     ######## کامند اشتباه
         subscriber_username=record[0][2]
         if len(subscriber_username)!=0:
@@ -145,18 +146,40 @@ def server_command_handler(messaging, connection, client_message):
 
 
     if client_message['command_type']=='edit':
-        file_name=client_message['enc_file_name']
-        record=find_file(file_name,client_message['client_user_name'])
+        with open(os.getcwd()+'/private_key.pem','r') as file:
+                   private_key=file.read()
         path=client_message['path']
-        if len(record)==0 or path!=record[0][4]:
-            return False     ######## کامند اشتباه
-        subscriber_username=record[0][2]
-        if len(subscriber_username)!=0:
-            client_record=find_client(subscriber_username)
-            cwd=os.getcwd() + "/src/server/Repository/" + client_record[3] + "/Shared_file/%s" %file_name
-            os.remove(cwd + '.txt')
-        update_shared_file(file_name,client_message['client_user_name'],'','')
-        return True 
+        if 'Shared_file' not in path:
+            file_name=client_message['file_name']
+            record=find_file(file_name,client_message['client_user_name'])
+            if len(record)==0 or check_path(path,record[0][4],cwd) :
+                return False     ######## کامند اشتباه
+            try:
+                file_path=path+'/'+file_name+'.txt'
+                with open(os.path.join(cwd,file_path),'r') as file:
+                   file_content=file.read()
+            except:
+                return False    ############ دلیل خطا به مسیر  ربط داره
+            if len(file_content)>0:
+                hash_string=(hashlib.sha1(private_key.encode()+file_content.encode())).hexdigest() 
+                if hash_string!=record[0][5]:
+                    return False      #########     صحت در مخزن نقض شده است
+            server_message={'message_type':'command','Shared_file':'False','enc_message':file_content}     ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.     
+            ################## انتظار برای دریافت پیام
+            ###############   پیام کلاینت دریافت شد
+            ###enc_file=client_message['enc_file']   
+            hash_string=(hashlib.sha1(private_key.encode()+enc_file.encode())).hexdigest() 
+            if hash_string!=record[0][5]:
+                update_file_integrity(file_name,client_message['client_user_name'],hash_string)
+                try:
+                    with open(os.path.join(cwd,file_path),'w') as file: 
+                        file.write(enc_file) 
+                    return True
+                except:
+                    return False
+        else:
+            path
+
 
 
 

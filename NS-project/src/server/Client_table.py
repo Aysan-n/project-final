@@ -79,6 +79,15 @@ def update_file(enc_file_name, user_owner, new_path):
     cursor.close()
     connection.close()
 
+def update_file_integrity(enc_file_name, user_owner, integrity):
+    connection = sqlite3.connect('clients.db')
+    cursor = connection.cursor()
+    sql_select_query = """UPDATE file_table SET integrity=? where enc_file_name=? and user_owner=?"""
+    cursor.execute(sql_select_query, (integrity, enc_file_name, user_owner))
+    connection.commit()
+    cursor.close()
+    connection.close()
+
 
 def find_file(enc_file_name, user_owner):
     connection = sqlite3.connect('clients.db')
