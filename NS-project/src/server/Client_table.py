@@ -51,11 +51,13 @@ def create_file_table():
 
 
 def add_file(enc_file_name, user_owner, file_path):
+    print("&&&")
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
     cursor.execute(
         "INSERT INTO file_table(enc_file_name,user_owner,file_path) VALUES ('" + enc_file_name + "', '" + user_owner + "', '" +
         file_path + "');")
+    print("file added")
     client_directory.commit()
     client_directory.close()
 
@@ -94,8 +96,10 @@ def find_file(enc_file_name, user_owner):
 def update_shared_file(enc_file_name, user_owner, subscriber_username, permission_type):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
-    sql_select_query = """UPDATE file_table SET subscriber_username=?,permission_type=? where enc_file_name=? and user_owner=?"""
-    cursor.execute(sql_select_query, (subscriber_username, permission_type, enc_file_name, user_owner))
+    sql_select_query = """UPDATE file_table SET subscriber_username='"""+subscriber_username[0]+""""', 
+    permission_type='"""+permission_type+""""' WHERE enc_file_name='"""+enc_file_name+""""' AND 
+    user_owner='"""+user_owner +"""';"""
+    cursor.execute(sql_select_query)
     connection.commit()
     cursor.close()
     connection.close()
