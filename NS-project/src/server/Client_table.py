@@ -31,8 +31,10 @@ def create_session_key_table():
 
     client_directory.commit()
     client_directory.close()
-    
+
     ########################           new new new new
+
+
 def create_file_table():
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
@@ -48,50 +50,53 @@ def create_file_table():
     client_directory.commit()
     client_directory.close()
 
-def add_file(enc_file_name,user_owner, file_path):
+
+def add_file(enc_file_name, user_owner, file_path):
     client_directory = sqlite3.connect('clients.db')
     cursor = client_directory.cursor()
-    cursor.execute("INSERT INTO file_table(enc_file_name,user_owner,file_path) VALUES ('" + enc_file_name + "', '" + user_owner + "', '" +
-                   file_path + "');")
+    cursor.execute(
+        "INSERT INTO file_table(enc_file_name,user_owner,file_path) VALUES ('" + enc_file_name + "', '" + user_owner + "', '" +
+        file_path + "');")
     client_directory.commit()
     client_directory.close()
 
 
-def delete_file(enc_file_name,user_owner):
+def delete_file(enc_file_name, user_owner):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
     sql_select_query = """DELETE from file_table where enc_file_name=? and user_owner=?"""
-    cursor.execute(sql_select_query, (enc_file_name,user_owner))
+    cursor.execute(sql_select_query, (enc_file_name, user_owner))
     connection.commit()
     cursor.close()
     connection.close()
 
-def update_file(enc_file_name,user_owner,new_path):
+
+def update_file(enc_file_name, user_owner, new_path):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
     sql_select_query = """UPDATE file_table SET file_path=? where enc_file_name=? and user_owner=?"""
-    cursor.execute(sql_select_query, (new_path,enc_file_name,user_owner))
+    cursor.execute(sql_select_query, (new_path, enc_file_name, user_owner))
     connection.commit()
     cursor.close()
     connection.close()
 
 
-
-def find_file(enc_file_name,user_owner):
+def find_file(enc_file_name, user_owner):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
     sql_select_query = """SELECT * FROM file_table WHERE enc_file_name=? and user_owner=?"""
-    cursor.execute(sql_select_query, (enc_file_name,user_owner))
+    cursor.execute(sql_select_query, (enc_file_name, user_owner))
     records = cursor.fetchone()
     cursor.close()
     connection.close()
     return records
 
-def update_shared_file(enc_file_name,user_owner,subscriber_username,permission_type):
+
+def update_shared_file(enc_file_name, user_owner, subscriber_username, permission_type):
     connection = sqlite3.connect('clients.db')
     cursor = connection.cursor()
     sql_select_query = """UPDATE file_table SET subscriber_username=?,permission_type=? where enc_file_name=? and user_owner=?"""
-    cursor.execute(sql_select_query, (subscriber_username,permission_type,enc_file_name,user_owner))
+    cursor.execute(sql_select_query, (subscriber_username, permission_type, enc_file_name, user_owner))
     connection.commit()
     cursor.close()
     connection.close()
