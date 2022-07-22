@@ -19,11 +19,14 @@ def generate_key_iv():
   #  return enc
 
 def Encryption(file_name:str):
-    key,iv=generate_key_iv()
-    cipher=AES.new(key, AES.MODE_CBC, iv)
-    enc_file_name=cipher.encrypt(pad(file_name.encode(),16,style='pkcs7')).hex()
-    insert(file_name,enc_file_name,key,iv)
-    return enc_file_name
+    if file_name=='Shared_file':
+        return 'Shared_file'
+    else:
+        key,iv=generate_key_iv()
+        cipher=AES.new(key, AES.MODE_CBC, iv)
+        enc_file_name=cipher.encrypt(pad(file_name.encode(),16,style='pkcs7')).hex()
+        insert(file_name,enc_file_name,key,iv)
+        return enc_file_name
 def file_encryption(content,key,iv):
     cipher=AES.new(key, AES.MODE_CBC, iv)
     enc=cipher.encrypt(pad(content.encode(),16,style='pkcs7')).hex()

@@ -17,6 +17,7 @@ def server_command_handler(messaging, connection, client_message):
     record = find_auth_user(client_user_name)
     client_record = find_client(client_user_name)
     critical_path = os.getcwd() + '/Repository/' + client_record[3]
+    cwd = os.getcwd() + "/Repository/" + client_record[3] + "/" + record[4]
 
     if len(record) == 0:  ###عدم احراز اصالت کاربر
         server_message = {'message_type': 'authentication', 'status': 'not authenticated'}
@@ -156,7 +157,7 @@ def server_command_handler(messaging, connection, client_message):
 
     operating_system = platform.system()
 
-    cwd = os.getcwd() + "/Repository/" + client_record[3] + "/" + record[4]
+    
 
     server_message = {'message_type': 'authentication', 'status': 'ok'}
     messaging.send_message(server_message, connection)
@@ -361,8 +362,8 @@ def mv_handler_linux(cwd_total, client_message):
         dest_path = dest_path[1:]
     access_path = os.path.join(cwd_total, access_path)
     enc_file_name=access_path.split('/')[-1]      ######new new new
-    new_path=dest_path                     ######new new new
     dest_path = os.path.join(cwd_total, dest_path)
+    new_path=dest_path 
     if client_message['command_flag'] == '-r':
         try:
             process = subprocess.Popen(['mv', '%s' % access_path, '%s' % dest_path], shell=True, stdout=subprocess.PIPE,
@@ -443,8 +444,8 @@ def mv_handler(cwd_total, client_message):
     access_path = os.path.join(cwd_total, access_path)
     access_path = access_path.replace('/', '\\')
     enc_file_name=access_path.split('\\')[-1]      ######new new new
-    new_path=dest_path                     ######new new new
     dest_path = os.path.join(cwd_total, dest_path)
+    new_path=dest_path                     ######new new new
     dest_path = dest_path.replace('/', '\\')
     if client_message['command_flag'] == '-r':
         try:
@@ -472,3 +473,7 @@ def mv_handler(cwd_total, client_message):
                 return True
         except:
             return False
+
+def check_path(client_path,file_path,cwd_total):
+    client_path=os.path.join(cwd_total,client_path)
+    return os.path.normpath(client_path)==os.path.normpath(file_path)

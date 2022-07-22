@@ -197,8 +197,6 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.':
                 enc_dir_name += [dir_name]
-            elif dir_name=='Shared_file':
-                enc_dir_name += ['Shared_file']
             else:
                 record = find_file(dir_name)
                 if len(record) == 0:
@@ -206,9 +204,15 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     enc_dir_name += [record[0][1]]
         enc_path= '/'.join(enc_dir_name)
-        client_message = {'message_type': 'client_command',
+        if 'shared_file'in path:
+            client_message = {'message_type': 'client_command',
                           'path': enc_path,'command_type': client_command,
-                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name}
+                          'enc_seq_num': enc_seq_num,'Shared_file':'True','client_user_name': client_user_name,'file_name':enc_file_name}        
+        else:
+            client_message = {'message_type': 'client_command',
+                          'path': enc_path,'command_type': client_command,
+                          'enc_seq_num': enc_seq_num,'Shared_file':'False','client_user_name': client_user_name,'file_name':enc_file_name}        
+
         ########    فرستادن پیام و انتظار برای دریافت جواب آن  
         #######  دریافت محتوای رمز شده
         if len(enc_message)>0:
