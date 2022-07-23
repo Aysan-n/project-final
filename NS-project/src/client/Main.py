@@ -11,6 +11,56 @@ from Registration import initiate_registration
 import os
 import rsa
 
+from client.key_managemnt_table import find_decrypted
+
+
+def decrypt_ls(result):
+    # print(result)
+    try:
+        result = result.split("\n")
+        final = ""
+        for text in result:
+            #print(text)
+            if text != "":
+                if text[0:5] == "total":
+                    final = final + text + "\n"
+                else:
+                    last_index = text.rindex(" ")
+                    # print(last_index)
+                    enc_file = text[last_index + 1:]
+                    # print(enc_file)
+                    beginning = text[0:last_index + 1]
+                    if enc_file != "Shared_file":
+                        if ".txt" not in enc_file:
+                            name = find_decrypted(enc_file)[0]
+                        else:
+                            enc_file = enc_file[0: enc_file.rindex(".")]
+                            name = find_decrypted(enc_file)[0]+".txt"
+                    else:
+                        name = "Shared_file"
+                    final = final + beginning + name + "\n"
+        return final
+    except:
+        return result
+
+
+
+
+def decrypt_cd(result):
+    error = result
+
+    result = result[1:]
+    # try:
+    result = result.split("/")
+    final = ""
+    try:
+        for file in result:
+            name = find_decrypted(file)[0]
+            final = final + "/" + name
+        print(final)
+    except:
+        print(error)
+
 
 def create_key():
     if not exists("Aysan_private.txt"):
@@ -32,7 +82,8 @@ def create_key():
     f2.close()
     return private_key, key_data
 
-with open(os.getcwd()+"/src/client/public_key.pem") as file:
+
+with open(os.getcwd() + "/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 
@@ -41,6 +92,7 @@ messaging.create_socket(2050)
 
 seq_number = None
 session_key = None
+
 my_key, my_public_key = create_key()
 
 while True:
@@ -70,7 +122,13 @@ while True:
             if message["status"] == "ok":
                 # print("okay")
                 message = messaging.receive()
-                print(message["status"])
+                if command[0:2] != 'cd' or ("Shared_file" in command):
+                    if command[0:2] != 'ls':
+                        print(message["status"])
+                    else:
+                        print(decrypt_ls(message["status"]))
+                else:
+                    decrypt_cd(message["status"])
                 seq_number = seq_number + 1
         else:
             print("Not authenticated yet.")
