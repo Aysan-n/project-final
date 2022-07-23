@@ -49,9 +49,9 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                           'client_user_name': client_user_name}
         messaging.send_message(client_message)
     if client_command == 'rm':
-        path = re.findall(r'^\w+\s(-r){0,1}\s{0,1}(.*)', command_string)
-        path=path[0][1]
-        directory_name=path.split('/')
+        path = re.findall(r'^\w+\s-{0,1}r{0,1}\s{0,1}(\w+)', command_string)
+        directory_name = path[0].split('/')
+        print('dir*********',directory_name)
         enc_dir_name = []
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.' or dir_name=='':
@@ -63,7 +63,9 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     enc_dir_name += [record[0][1]]
         enc_path = '/'.join(enc_dir_name)
+        print('enc_path*****************',enc_path)
         command_flag = re.findall(r'\s(-\w{0,1})\s{0,1}.+$',command_string)
+        print('command_flag*****************',command_flag)
         if len(command_flag)==0:
             command_flag=''
         else:
@@ -247,7 +249,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                         file.write(dec_messgae.decode())
             elif server_message['permission_type'] == 'r':
                 print("FILE IS EMPTY")
-                return
+                return 0
             process = subprocess.Popen(["notepad.exe", os.getcwd + '/src/client/cache_file/cache_file.txt'])
             process.wait()
             with open(os.getcwd + '/src/client/cache_file/cache_file.txt', 'r') as file:
