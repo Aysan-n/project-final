@@ -1,3 +1,4 @@
+import platform
 import time
 from os.path import exists
 
@@ -14,7 +15,7 @@ import rsa
 from client.key_managemnt_table import find_decrypted
 
 
-def decrypt_ls(result):
+def decrypt_ls_linux(result):
     # print(result)
     try:
         result = result.split("\n")
@@ -44,7 +45,42 @@ def decrypt_ls(result):
         return result
 
 
+def decrypt_ls_windows(result):
+    # print(result)
+    # try:
+        result = result.split("\n")
+        final = ""
+        for text in result:
+            #print(text)
+            if text != "":
+                if text[0:5] == "total" or text[0] == " ":
+                    final = final + text + "\n"
+                else:
+                    last_index = text.rindex(" ")
+                    # print(last_index)
+                    enc_file = text[last_index + 1:]
+                    # print(enc_file)
+                    beginning = text[0:last_index + 1]
+                    if enc_file != "Shared_file" and enc_file != "." and enc_file != "..":
+                        if ".txt" not in enc_file:
+                            name = find_decrypted(enc_file)[0]
+                        else:
+                            enc_file = enc_file[0: enc_file.rindex(".")]
+                            name = find_decrypted(enc_file)[0]+".txt"
+                    else:
+                        name = "Shared_file"
+                    final = final + beginning + name + "\n"
+        return final
+    # except:
+    #     return result
 
+
+def decrypt_ls(result):
+    operating_system = platform.system()
+    if operating_system =="Windows":
+        decrypt_ls_windows(result)
+    else:
+        decrypt_ls_linux(result)
 
 def decrypt_cd(result):
     error = result
