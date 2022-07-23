@@ -71,9 +71,9 @@ def server_command_handler(messaging, connection, client_message):
         path = client_message['path']
         path_list = path.split('/')
         cwd_list = record[4].split('/')[1:]
-        if cwd_list[0]=='':
+        if cwd_list[0] == '':
             cwd_list.remove('')
-        if path_list.count('..')>=(len(cwd_list)+1):
+        if path_list.count('..') >= (len(cwd_list) + 1):
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
             return False  # دسترسی غیر مجازی
@@ -112,7 +112,7 @@ def server_command_handler(messaging, connection, client_message):
                 return False  ######## کامند اشتباه
             # try:
             file_path = path + file_name + '.txt'
-            print(cwd+ file_path)
+            print(cwd + file_path)
             with open(cwd + file_path, 'r') as file:
                 file_content = file.read()
             # except:
@@ -144,16 +144,20 @@ def server_command_handler(messaging, connection, client_message):
         else:
             record = find_shared_file(file_name, client_message['client_user_name'])
             if len(record) == 0:
+                print("client not found")
                 return False
             try:
-                file_path = record[0][4] + '/' + file_name + '.txt'
+                file_path = record[4] + '/' + file_name + '.txt'
+                print(record)
                 with open(file_path, 'r') as file:
                     file_content = file.read()
             except:
+                print("path not found")
                 return False  ############ دلیل خطا به مسیر  ربط داره
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
                 if hash_string != record[0][5]:
+                    print("wrong hash")
                     return False  #########     صحت در مخزن نقض شده است
             try:
                 subscriber_file_path = path + '/' + file_name + '.txt'
@@ -173,8 +177,8 @@ def server_command_handler(messaging, connection, client_message):
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
                                   'enc_message': file_content, 'enc_key': shared_file_content[2],
                                   'enc_iv': shared_file_content[3]}  ####  در صورت نیاز سکوئنس نامبر
-                ###################   پیام فرستاده می شود
-                # منتظر جواب از سمت کلاینت
+                messaging.send_message(server_message)
+                client_message = deserialize(connection.recv(2048))
                 enc_file = client_message['enc_file']
                 hash_string = (hashlib.sha1(private_key.encode() + enc_file.encode())).hexdigest()
                 if hash_string != record[0][5]:
@@ -190,7 +194,7 @@ def server_command_handler(messaging, connection, client_message):
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
                                   'enc_message': file_content, 'enc_key': shared_file_content[2],
                                   'enc_iv': shared_file_content[3]}  ####  در صورت نیاز سکوئنس نامبر
-                ############### فرستادن پیام سرور
+                messaging.send_message(server_message)
                 ###############  پایان. نیاز به انتظار نمی باشد
         ######################################################################
 
@@ -289,7 +293,11 @@ def server_command_handler(messaging, connection, client_message):
         messaging.send_message(server_message, connection)
 
     elif command_type == "cd":
-        status = cd_handler(cwd,critical_path,client_message)
+        if operating_system == "Windows":
+            status = cd_handler(cwd, critical_path, client_message)
+        else:
+            status = cd_handler_linux(cwd, critical_path, client_message)
+
         server_message = {'message_type': 'command_result', 'status': status}
         messaging.send_message(server_message, connection)
 
@@ -343,6 +351,22 @@ def cd_handler(cwd_total, critical_path, client_message):
     update_cwd(client_user_name, new_cwd)
     return new_cwd
 
+def cd_handler_linux(cwd_total, critical_path, client_message):
+    savedPath = os.getcwd()
+    os.chdir(cwd_total)
+    path = client_message['path']
+    if path[0] == '/':
+        path = path[1:]
+    os.chdir(path)
+    new_cwd = os.getcwd()
+    os.chdir(savedPath)
+    critical_path = critical_path.split('/')
+    new_cwd = new_cwd.split('/')
+    new_cwd = new_cwd[len(critical_path):]
+    new_cwd = '/' + '/'.join(new_cwd)
+    client_user_name = client_message['client_user_name']
+    update_cwd(client_user_name, new_cwd)
+    return new_cwd
 
 def touch_handler(cwd_total, client_message):
     path = client_message['path']
@@ -370,6 +394,7 @@ def touch_handler(cwd_total, client_message):
     add_file(file_name, client_message['client_user_name'],
              new_path)  ###################################new new new new
 
+
 def touch_handler_linux(cwd_total, client_message):
     path = client_message['path']
     if path[0] == '/':
@@ -394,6 +419,7 @@ def touch_handler_linux(cwd_total, client_message):
     output, error = process.communicate()
     add_file(file_name, client_message['client_user_name'],
              new_path)  ###################################new new new new
+
 
 def mkdir_handler(cwd_total, client_message):
     path = client_message['path']
@@ -422,7 +448,7 @@ def rm_handler(cwd_total, client_message):
         else:
             return True
     try:
-        print('***************',path+'.txt')
+        print('***************', path + '.txt')
         os.remove(path + '.txt')
         delete_file(enc_file_name, client_message['client_user_name'])  ################################# new new
         return True
