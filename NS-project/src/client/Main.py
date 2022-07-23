@@ -32,7 +32,8 @@ def create_key():
     f2.close()
     return private_key, key_data
 
-with open(os.getcwd()+"/src/client/public_key.pem") as file:
+
+with open(os.getcwd()+"/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 
@@ -45,26 +46,29 @@ session_key = None
 my_key, my_public_key = create_key()
 
 while True:
-    action = input()
-    if action == "register":
+    action = input("Press\n"
+                   "1 for REGISTRATION\n"
+                   "2 for AUTHENTICATION\n"
+                   "3 for COMMAND\n")
+    if action == "1":
         first_name = input("Input your first name:")
         last_name = input("Input your last name:")
         username = input("Input your username:")
         password = input("Input your password:")
         initiate_registration(messaging, public_key, first_name, last_name, username, password, my_public_key.hex())
-    elif action == "authentication":
+    elif action == "2":
         username = input("Input your username:")
         password = input("Input your password:")
         seq_number, session_key = client_auth(messaging, public_key, username, password)
         seq_number = seq_number + 1
-    elif action == "command":
+    elif action == "3":
 
         if seq_number is not None and session_key is not None:
             username = input("Input your username:")
             command = input("Input command:")
             command_handler(messaging, command, seq_number, session_key, username)
             message = messaging.receive()
-            # print(message)
+            print(message)
             if message["status"] == "ok":
                 # print("okay")
                 message = messaging.receive()
