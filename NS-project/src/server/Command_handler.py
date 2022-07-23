@@ -422,7 +422,6 @@ def rm_handler(cwd_total, client_message):
         else:
             return True
     try:
-        print('***************',path+'.txt')
         os.remove(path + '.txt')
         delete_file(enc_file_name, client_message['client_user_name'])  ################################# new new
         return True
