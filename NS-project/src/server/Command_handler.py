@@ -207,7 +207,7 @@ def server_command_handler(messaging, connection, client_message):
                         with open(file_path, 'w') as file:
                             file.write(enc_file)
                         print('****************************7')
-                        return True
+                        #return True
                     except:
                         return False
             else:

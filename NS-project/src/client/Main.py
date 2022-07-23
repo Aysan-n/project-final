@@ -17,7 +17,6 @@ from key_managemnt_table import find_decrypted
 
 def decrypt_ls_linux(result):
     # print(result)
-    return result
     try:
         result = result.split("\n")
         final = ""
@@ -47,7 +46,6 @@ def decrypt_ls_linux(result):
 
 
 def decrypt_ls_windows(result):
-    # print(result)
     # try:
         result = result.split("\n")
         final = ""
@@ -60,18 +58,21 @@ def decrypt_ls_windows(result):
                     last_index = text.rindex(" ")
                     # print(last_index)
                     enc_file = text[last_index + 1:]
-                    # print(enc_file)
+                    enc_file =enc_file[0:enc_file.index("\r")]
+                    #print('***********encfile',enc_file)
                     beginning = text[0:last_index + 1]
-                    if enc_file != "Shared_file" and enc_file != "." and enc_file != "..":
+                    if enc_file != "Shared_file" and enc_file[0]!= "." and enc_file[0]!= "..":
                         if ".txt" not in enc_file:
                             name = find_decrypted(enc_file)[0]
                         else:
                             enc_file = enc_file[0: enc_file.rindex(".")]
                             name = find_decrypted(enc_file)[0]+".txt"
                     else:
-                        name = "Shared_file"
+                        name =enc_file
                     final = final + beginning + name + "\n"
+                    #print(final)
         return final
+        
     # except:
     #     return result
 
@@ -79,9 +80,9 @@ def decrypt_ls_windows(result):
 def decrypt_ls(result):
     operating_system = platform.system()
     if operating_system =="Windows":
-        decrypt_ls_windows(result)
+        return decrypt_ls_windows(result)
     else:
-        decrypt_ls_linux(result)
+        return decrypt_ls_linux(result)
 
 def decrypt_cd(result):
     error = result
