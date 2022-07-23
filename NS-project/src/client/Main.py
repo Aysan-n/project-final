@@ -11,11 +11,12 @@ from Registration import initiate_registration
 import os
 import rsa
 
-from client.key_managemnt_table import find_decrypted
+from key_managemnt_table import find_decrypted
 
 
 def decrypt_ls(result):
     # print(result)
+    return result
     try:
         result = result.split("\n")
         final = ""
@@ -83,7 +84,7 @@ def create_key():
     return private_key, key_data
 
 
-with open(os.getcwd() + "/public_key.pem") as file:
+with open(os.getcwd() + "/src/client/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 
