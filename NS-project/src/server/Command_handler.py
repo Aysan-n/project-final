@@ -68,11 +68,18 @@ def server_command_handler(messaging, connection, client_message):
     if client_message['command_type'] != 'mv':
 
         path = client_message['path']
+        print('path************',path)
         path_list = path.split('/')
+        print('pathlist************',path_list)
 
         cwd_list = record[4].split('/')[1:]
-
-        if path_list.count('..') > (len(cwd_list)) - 1:
+        if cwd_list[0]=='':
+            cwd_list.remove('')
+        print('cwd_list*************',cwd_list)
+        print(len(cwd_list)+1)
+        print(path_list.count('..'))
+        print('**************',path_list.count('..')>=(len(cwd_list)+1))
+        if path_list.count('..')>=(len(cwd_list)+1):
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
             return False  # دسترسی غیر مجازی
@@ -85,13 +92,13 @@ def server_command_handler(messaging, connection, client_message):
         dest_path = client_message['dest_path']
         access_path_list = access_path.split('/')
         dest_path_list = dest_path.split('/')
-        cwd_list = record[5].split('/')[1:]  ##################### جدول باید درست شود
+        cwd_list = record[4].split('/')[1:]  ##################### جدول باید درست شود
         if access_path_list.count('..') > (len(cwd_list)) - 1 or dest_path_list.count('..') > (len(cwd_list)) - 1:
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
             return False  # دسترسی غیر مجازی
-        elif (len(lcs(critical_path, access_path) > 0 and critical_path.find(access_path) == 0)) or (
-                len(lcs(critical_path, dest_path) > 0 and critical_path.find(dest_path) == 0)):
+        elif (len(lcs(critical_path, access_path)) > 0 and critical_path.find(access_path) == 0) or (
+                len(lcs(critical_path, dest_path)) > 0 and critical_path.find(dest_path) == 0):
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
             return False  ###دسترسی غیر مجاز
@@ -279,7 +286,7 @@ def server_command_handler(messaging, connection, client_message):
         messaging.send_message(server_message, connection)
 
     elif command_type == "cd":
-        status = cd_handler(cwd, client_message)
+        status = cd_handler(cwd,critical_path,client_message)
         server_message = {'message_type': 'command_result', 'status': status}
         messaging.send_message(server_message, connection)
 

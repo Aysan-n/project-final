@@ -20,19 +20,18 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         if len(path) == 0 and client_command in ['mkdir', 'touch', 'cd']:
             return False
         elif len(path) == 0 and client_command == 'ls':
-            client_message = {'message_type': 'client_command', 'command': client_command, 'path': '',
+            client_message = {'message_type': 'client_command', 'command': client_command, 'path': './',
                               'command_type': client_command, 'enc_seq_num': enc_seq_num,
                               'client_user_name': client_user_name}
             messaging.send_message(client_message)
             return True
         if path[0][0] == '/':
             path[0] = path[0][1:]
-        directory_name = path[0].split('/')
-
+        directory_name = path[0].split('/') 
         enc_dir_name = []
 
         for dir_name in directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
@@ -44,18 +43,17 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                     enc_dir_name += [record[0][1]]
 
         enc_path = '/'.join(enc_dir_name)
-
         client_message = {'message_type': 'client_command', 'command': client_command + enc_path, 'path': enc_path,
                           'command_type': client_command, 'enc_seq_num': enc_seq_num,
                           'client_user_name': client_user_name}
         messaging.send_message(client_message)
 
     if client_command == 'rm':
-        path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}(.+$)', command_string)
+        path = re.findall(r'^\w+\s-{0,1}r{0,1}\s{0,1}(\w+)', command_string)
         directory_name = path[0].split('/')
         enc_dir_name = []
         for dir_name in directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
@@ -64,18 +62,24 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     enc_dir_name+=[record[0][1]]
         enc_path = '/'.join(enc_dir_name)
-        command_flag = re.findall(r'\s(-{0,1}\w{0,1})\s{0,1}.+$',command_string)
-        client_message = {'message_type':'client_command','command':client_command+command_flag[0]+enc_path,'path':enc_path,'command_flag':command_flag[0],'command_type':client_command,'enc_seq_num':enc_seq_num,'client_user_name':client_user_name}
+        print('*****************',enc_path)
+        command_flag = re.findall(r'\s(-\w{0,1})\s{0,1}.+$',command_string)
+        print('*****************',command_flag)
+        if len(command_flag)==0:
+            command_flag=''
+        else:
+            command_flag=command_flag[0]        
+        client_message = {'message_type':'client_command','command':client_command+command_flag+enc_path,'path':enc_path,'command_flag':command_flag,'command_type':client_command,'enc_seq_num':enc_seq_num,'client_user_name':client_user_name}
         messaging.send_message(client_message)
     if client_command == 'mv':
-        access_path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}(.+)\s',command_string)
+        access_path = re.findall(r'^\w+\s-{0,1}r{0,1}\s{0,1}(\w+)',command_string)
         dest_path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}.+\s(.+)',command_string)
         access_directory_name = access_path[0].split('/')
         dest_directory_name =dest_path[0].split('/')
         enc_access_dir_name=[]
         enc_des_dir_name=[]
         for dir_name in access_directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_access_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
@@ -84,21 +88,25 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     enc_access_dir_name += [record[0][1]]
         for dir_name in dest_directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_des_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
                 if len(record) == 0:
-                    enc_dir_name += [Encryption(dir_name)]
+                    enc_des_dir_name += [Encryption(dir_name)]
                 else:
-                    enc_access_dir_name += [record[0][1]]
+                    enc_des_dir_name += [record[0][1]]
         enc_access_path = '/'.join(enc_access_dir_name)
         enc_dest_path = '/'.join(enc_des_dir_name)
-        command_flag = re.findall(r'\s(-{0,1}\w{0,1})\s{0,1}.+$', command_string)
+        command_flag = re.findall(r'\s(-\w{0,1})\s{0,1}.+$', command_string)
+        if len(command_flag)==0:
+            command_flag=''
+        else:
+            command_flag=command_flag[0]
+
         client_message = {'message_type': 'client_command',
-                          'command': client_command + command_flag[0] + enc_access_path + enc_dest_path,
                           'access_path': enc_access_path, 'dest_path': enc_dest_path, 'command_type': client_command,
-                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name}
+                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'command_flag':command_flag}
         messaging.send_message(client_message)
     
 
@@ -125,7 +133,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         iv=record[0][3]
         enc_dir_name = []
         for dir_name in directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
@@ -178,7 +186,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         enc_file_name=record[0][1]
         enc_dir_name = []
         for dir_name in directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
@@ -196,7 +204,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
 
 
     if client_command=='edit':
-        path=re.findall(r'^\w+\s(.*?)\s{0,1}',command_string)
+        path=re.findall(r'^\w+\s(.+)',command_string)
         if len(path)==0:
             return False   #### کامند اشتباه
         if path[0][0] == '/':
@@ -211,7 +219,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         iv=record[0][3]
         enc_dir_name = []
         for dir_name in directory_name:
-            if dir_name == '..' or dir_name == '.':
+            if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
@@ -220,7 +228,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     enc_dir_name += [record[0][1]]
         enc_path= '/'.join(enc_dir_name)
-        if 'shared_file'in path:
+        if 'Shared_file'in path:
             client_message = {'message_type': 'client_command',
                           'path': enc_path,'command_type': client_command,
                           'enc_seq_num': enc_seq_num,'Shared_file':'True','client_user_name': client_user_name,'file_name':enc_file_name}  

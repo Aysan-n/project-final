@@ -32,7 +32,6 @@ def create_key():
     f2.close()
     return private_key, key_data
 
-
 with open(os.getcwd()+"/src/client/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
