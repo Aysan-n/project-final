@@ -227,6 +227,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             ###############    فرستادن پیام وانتظار برای دریافت آن
             ################  دریافت پیام
             server_message = messaging.receive()
+            print('*************1')
             print(server_message)
             with open(os.getcwd() + '/Aysan_private.txt', 'r') as file:
                 key_data = file.read()
@@ -235,11 +236,13 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             enc_key = server_message['enc_key']
             enc_iv = server_message['enc_iv']
 
-            key = rsa.decrypt(bytes.fromhex(enc_key), private_key).decode()
-            iv = rsa.decrypt(bytes.fromhex(enc_iv), private_key).decode()
-
+            key=rsa.decrypt(bytes.fromhex(enc_key), private_key).decode()
+            iv=rsa.decrypt(bytes.fromhex(enc_iv), private_key).decode()
+            key=bytes.fromhex(key)
+            iv=bytes.fromhex(iv)
             enc_message = server_message['enc_message']
             print(server_message['permission_type'])
+            print('*************2')
             if len(enc_message) > 0:
                 dec_messgae = file_Decryption(enc_message, key, iv)
                 if server_message['permission_type'] == 'r':
@@ -250,42 +253,20 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             elif server_message['permission_type'] == 'r':
                 print("FILE IS EMPTY")
                 return 0
-            process = subprocess.Popen(["notepad.exe", os.getcwd + '/src/client/cache_file/cache_file.txt'])
+            process = subprocess.Popen(["notepad.exe", os.getcwd()+'/src/client/cache_file/cache_file.txt'])
             process.wait()
-            with open(os.getcwd + '/src/client/cache_file/cache_file.txt', 'r') as file:
+            with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'r') as file:
                 file_content = file.read()
-            with open(os.getcwd + '/src/client/cache_file/cache_file.txt', 'w') as file:
+            with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
                 file.write('')
             enc_file = file_encryption(file_content, key, iv)
             client_message = {'message_type': 'client_command',
                               ###### پارامتر های این پیام براساس شرایط، می تواند بر اساس پیام رسیده شده از سرور فرستاده شود
-                              'path': enc_path, 'command_type': client_command,
+                              'path': path[0], 'command_type': client_command,
                               'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,
-                              'file_name': enc_file_name, 'enc_file': enc_file}
+                              'file_name': file_name, 'enc_file': enc_file}
             messaging.send_message(client_message)
-
-            record = find_file(file_name)
-            print(record)
-            if len(record) == 0:
-                print(2)
-                return False  #### کامند اشتباه
-            enc_file_name = record[0][1]
-            enc_key = record[0][2]
-            iv = record[0][3]
-            enc_dir_name = []
-            for dir_name in directory_name:
-                if dir_name == '..' or dir_name == '.':
-                    enc_dir_name += [dir_name]
-                else:
-                    print(dir_name)
-                    record = find_file(dir_name)
-                    if len(record) == 0:
-                        print(3)
-                        return False  #####   کامند اشتباه
-                    else:
-                        enc_dir_name += [record[0][1]]
-            enc_path = '/'.join(enc_dir_name)
-
+            print('*************3')
         else:
             record = find_file(file_name)
             if len(record) == 0:

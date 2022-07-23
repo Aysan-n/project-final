@@ -41,7 +41,6 @@ messaging.create_socket(2050)
 
 seq_number = None
 session_key = None
-
 my_key, my_public_key = create_key()
 
 while True:

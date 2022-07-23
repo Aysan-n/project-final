@@ -192,16 +192,21 @@ def server_command_handler(messaging, connection, client_message):
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
                                   'enc_message': file_content, 'enc_key': shared_file_content[2],
                                   'enc_iv': shared_file_content[3]}  ####  در صورت نیاز سکوئنس نامبر
-                messaging.send_message(server_message)
+                print('****************',server_message)
+                messaging.send_message(server_message,connection)
+                print('****************************4')
                 client_message = deserialize(connection.recv(2048))
                 enc_file = client_message['enc_file']
                 hash_string = (hashlib.sha1(private_key.encode() + enc_file.encode())).hexdigest()
-                if hash_string != record[0][5]:
-                    update_file_integrity(file_name, record[0][1], hash_string)
+                print('****************************5')
+                if hash_string != record[5]:
+                    update_file_integrity(file_name, record[1], hash_string)
+                    print('****************************6')
                     try:
-                        file_path = record[0][4] + file_name + '.txt'
+                        file_path = record[4]+'/'+file_name+'.txt'
                         with open(file_path, 'w') as file:
                             file.write(enc_file)
+                        print('****************************7')
                         return True
                     except:
                         return False
@@ -221,13 +226,12 @@ def server_command_handler(messaging, connection, client_message):
     time.sleep(1)
 
     if client_message['command_type'] == 'share':
-
         file_name = client_message['file_name']
         enc_key = client_message['enc_key']
         enc_iv = client_message['enc_iv']
         record = find_file(file_name, client_message['client_user_name'])
         path = client_message['path']
-        if len(record) == 0 or check_path(path, record[0][4], cwd):
+        if len(record) == 0 or check_path(path, record[4], cwd):
             return False  ######## کامند اشتباه
         subscriber_username = client_message['subscriber_username']
         permission_type = client_message['flag']
@@ -237,7 +241,6 @@ def server_command_handler(messaging, connection, client_message):
 
         print(file_name, client_message['client_user_name'], subscriber_username, permission_type)
         update_shared_file(file_name, client_message['client_user_name'], subscriber_username, permission_type)
-
         cwd = os.getcwd() + "/Repository/" + client_record[3] + "/Shared_file"
         print(client_record)
         with cd(cwd):
@@ -258,7 +261,7 @@ def server_command_handler(messaging, connection, client_message):
         file_name = client_message['file_name']
         record = find_file(file_name, client_message['client_user_name'])
         path = client_message['path']
-        if len(record) == 0 or check_path(path, record[0][4], cwd):
+        if len(record) == 0 or check_path(path, record[4], cwd):
             return False  ######## کامند اشتباه
         print(record)
         subscriber_username = record[2]
