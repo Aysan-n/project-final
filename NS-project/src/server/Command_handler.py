@@ -1,3 +1,4 @@
+import time
 from fileinput import filename
 import json
 from tkinter.tix import TEXT
@@ -99,12 +100,15 @@ def server_command_handler(messaging, connection, client_message):
 
         ########################################################################################### کدجدید
 
+    print(client_message['command_type'])
     if client_message['command_type'] == 'edit':
+
         with open(os.getcwd() + '/private_key.pem', 'r') as file:
             private_key = file.read()
         path = client_message['path']
         file_name = client_message['file_name']
 
+        print("MMM: " + path)
         if 'Shared_file' not in path:
             record = find_file(file_name, client_message['client_user_name'])
             if len(record) == 0 or check_path(path, record[0][4], cwd):
@@ -142,6 +146,7 @@ def server_command_handler(messaging, connection, client_message):
                     print("wtf")
                     return False
         else:
+            print("MMM")
             record = find_shared_file(file_name, client_message['client_user_name'])
             if len(record) == 0:
                 print("client not found")
@@ -160,19 +165,31 @@ def server_command_handler(messaging, connection, client_message):
                     print("wrong hash")
                     return False  #########     صحت در مخزن نقض شده است
             try:
-                subscriber_file_path = path + '/' + file_name + '.txt'
+                subscriber_file_path = path + '.txt'
+                print(subscriber_file_path)
                 with open(os.path.join(cwd, subscriber_file_path), 'r') as file:
                     shared_file_content = file.read()
             except:
+                print(1)
                 return False  ############ دلیل خطا به مسیر  ربط داره
             if len(shared_file_content) == 0:
+                print(2)
                 return False  ###############         خطا در محتوای فایل مشترک
+
             shared_file_content = shared_file_content.rstrip('\n').replace('"', '').strip().split('/')
-            if shared_file_content[0] != file_name or shared_file_content[1] != record[0][1]:
+            print(shared_file_content)
+            print(record)
+
+            if shared_file_content[0] != file_name or shared_file_content[1] != record[1]:
+                print(3)
                 return False  ###############         خطا در محتوای فایل مشترک
-            permission_type = record[0][3]
+
+            permission_type = record[3]
+
             if len(permission_type) == 0:
+                print(4)
                 return False  ########    خطا در ذخیره ی فایل مشترک
+
             if permission_type in ['rw', 'wr']:
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
                                   'enc_message': file_content, 'enc_key': shared_file_content[2],
@@ -194,13 +211,16 @@ def server_command_handler(messaging, connection, client_message):
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
                                   'enc_message': file_content, 'enc_key': shared_file_content[2],
                                   'enc_iv': shared_file_content[3]}  ####  در صورت نیاز سکوئنس نامبر
-                messaging.send_message(server_message)
+                messaging.send_message(server_message, connection)
                 ###############  پایان. نیاز به انتظار نمی باشد
         ######################################################################
 
-    print("HELLO")
+    # print("HELLO")
     server_message = {'message_type': 'authentication', 'status': 'ok'}
+
     messaging.send_message(server_message, connection)
+
+    time.sleep(1)
 
     if client_message['command_type'] == 'share':
 
@@ -305,6 +325,7 @@ def server_command_handler(messaging, connection, client_message):
         mkdir_handler(cwd, client_message)
         server_message = {'message_type': 'command_result', 'status': 'ok'}
         messaging.send_message(server_message, connection)
+
     elif command_type == "edit":
         server_message = {'message_type': 'command_result', 'status': 'ok'}
         messaging.send_message(server_message, connection)
@@ -351,6 +372,7 @@ def cd_handler(cwd_total, critical_path, client_message):
     update_cwd(client_user_name, new_cwd)
     return new_cwd
 
+
 def cd_handler_linux(cwd_total, critical_path, client_message):
     savedPath = os.getcwd()
     os.chdir(cwd_total)
@@ -367,6 +389,7 @@ def cd_handler_linux(cwd_total, critical_path, client_message):
     client_user_name = client_message['client_user_name']
     update_cwd(client_user_name, new_cwd)
     return new_cwd
+
 
 def touch_handler(cwd_total, client_message):
     path = client_message['path']
@@ -448,6 +471,7 @@ def rm_handler(cwd_total, client_message):
         else:
             return True
     try:
+        print('***************', path + '.txt')
         os.remove(path + '.txt')
         delete_file(enc_file_name, client_message['client_user_name'])  ################################# new new
         return True
