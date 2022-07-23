@@ -1,15 +1,16 @@
+import time
 from multiprocessing import shared_memory
-import re,subprocess,os,rsa
-from File_Encryption import Encryption,file_encryption,seq_Encryption
+import re, subprocess, os, rsa
+from File_Encryption import Encryption, file_encryption, seq_Encryption
 from File_Decryption import file_Decryption
 from key_managemnt_table import find_file, create
-
+import platform
 
 
 def command_handler(messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
     create()
     command_string = command
-    support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv','share','revoke','edit']
+    support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv', 'share', 'revoke', 'edit']
     client_command = (re.findall(r'^\w+', command_string))[0]
     enc_seq_num = seq_Encryption(seq_num, session_key)
     if client_command not in support_command:
@@ -49,7 +50,6 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                           'command_type': client_command, 'enc_seq_num': enc_seq_num,
                           'client_user_name': client_user_name}
         messaging.send_message(client_message)
-
     if client_command == 'rm':
         path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}(.+$)', command_string)
         directory_name = path[0].split('/')
@@ -62,18 +62,20 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 if len(record) == 0:
                     return False
                 else:
-                    enc_dir_name+=[record[0][1]]
+                    enc_dir_name += [record[0][1]]
         enc_path = '/'.join(enc_dir_name)
-        command_flag = re.findall(r'\s(-{0,1}\w{0,1})\s{0,1}.+$',command_string)
-        client_message = {'message_type':'client_command','command':client_command+command_flag[0]+enc_path,'path':enc_path,'command_flag':command_flag[0],'command_type':client_command,'enc_seq_num':enc_seq_num,'client_user_name':client_user_name}
+        command_flag = re.findall(r'\s(-{0,1}\w{0,1})\s{0,1}.+$', command_string)
+        client_message = {'message_type': 'client_command', 'command': client_command + command_flag[0] + enc_path,
+                          'path': enc_path, 'command_flag': command_flag[0], 'command_type': client_command,
+                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name}
         messaging.send_message(client_message)
     if client_command == 'mv':
-        access_path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}(.+)\s',command_string)
-        dest_path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}.+\s(.+)',command_string)
+        access_path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}(.+)\s', command_string)
+        dest_path = re.findall(r'\s-{0,1}\w{0,1}\s{0,1}.+\s(.+)', command_string)
         access_directory_name = access_path[0].split('/')
-        dest_directory_name =dest_path[0].split('/')
-        enc_access_dir_name=[]
-        enc_des_dir_name=[]
+        dest_directory_name = dest_path[0].split('/')
+        enc_access_dir_name = []
+        enc_des_dir_name = []
         for dir_name in access_directory_name:
             if dir_name == '..' or dir_name == '.':
                 enc_access_dir_name += [dir_name]
@@ -100,29 +102,28 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                           'access_path': enc_access_path, 'dest_path': enc_dest_path, 'command_type': client_command,
                           'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name}
         messaging.send_message(client_message)
-    
 
     ##################دستور جدید
     if client_command == 'share':
-        flag = re.findall(r'-(\w{1,2})\s{0,1}$',command_string)
-        if len(flag) == 0 or len(flag[0])>2 or (flag[0] not in ['rw','wr','r']):
+        flag = re.findall(r'-(\w{1,2})\s{0,1}$', command_string)
+        if len(flag) == 0 or len(flag[0]) > 2 or (flag[0] not in ['rw', 'wr', 'r']):
             print("ERROR: Permisions not right.")
             return False  ###### کامند اشتباه
-        path = re.findall(r'^\w+\s(.*?)\s',command_string)
+        path = re.findall(r'^\w+\s(.*?)\s', command_string)
         if len(path) == 0:
             print("ERROR: Path not right.")
-            return False   #### کامند اشتباه
+            return False  #### کامند اشتباه
         if path[0][0] == '/':
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
-        file_name=directory_name.pop()
-        record=find_file(file_name)
-        if len(record)==0:
+        file_name = directory_name.pop()
+        record = find_file(file_name)
+        if len(record) == 0:
             print("ERROR: File not found.")
             return False  #### کامند اشتباه
-        enc_file_name=record[0][1]
-        enc_key=record[0][2]
-        iv=record[0][3]
+        enc_file_name = record[0][1]
+        enc_key = record[0][2]
+        iv = record[0][3]
         enc_dir_name = []
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.':
@@ -131,17 +132,19 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 record = find_file(dir_name)
                 if len(record) == 0:
                     print("ERROR: Path not right.")
-                    return False   #####   کامند اشتباه
+                    return False  #####   کامند اشتباه
                 else:
                     enc_dir_name += [record[0][1]]
-        enc_path= '/'.join(enc_dir_name)
-        subscriber_username=re.findall(r'^\w+\s.*?\s(\w+)',command_string)
-        if len(subscriber_username)==0:
+        enc_path = '/'.join(enc_dir_name)
+        subscriber_username = re.findall(r'^\w+\s.*?\s(\w+)', command_string)
+        if len(subscriber_username) == 0:
             print("ERROR: Username not found.")
-            return False   #### کامند اشتباه
-        
+            return False  #### کامند اشتباه
+
         ###############  ارسال درخواست کلاینت برای دریافت کلید عمومی کاربر مشترک
-        client_message = {'message_type': 'client_command', 'command_type': "share", 'subscriber_username': subscriber_username, 'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name}    #####seq num در صورت سخت کردن قضیه نادیده گرفته شود
+        client_message = {'message_type': 'client_command', 'command_type': "share",
+                          'subscriber_username': subscriber_username, 'enc_seq_num': enc_seq_num,
+                          'client_user_name': client_user_name}  #####seq num در صورت سخت کردن قضیه نادیده گرفته شود
         messaging.send_message(client_message)
         ####### دریافت کلید عمومی
         reply = messaging.receive()
@@ -162,20 +165,19 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         messaging.send_message(client_message)
         #### درخواست اولی می تواند در قسمت messaging سرور پرداخته شود
         #################       ارسال آخرین پیام کلاینت
-    
 
-    if client_command=='revoke':
-        path=re.findall(r'^\w+\s(.*)',command_string)
-        if len(path)==0:
-            return False   #### کامند اشتباه
+    if client_command == 'revoke':
+        path = re.findall(r'^\w+\s(.*)', command_string)
+        if len(path) == 0:
+            return False  #### کامند اشتباه
         if path[0][0] == '/':
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
-        file_name=directory_name.pop()
-        record=find_file(file_name)
-        if len(record)==0:
+        file_name = directory_name.pop()
+        record = find_file(file_name)
+        if len(record) == 0:
             return False  #### کامند اشتباه
-        enc_file_name=record[0][1]
+        enc_file_name = record[0][1]
         enc_dir_name = []
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.':
@@ -183,32 +185,29 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             else:
                 record = find_file(dir_name)
                 if len(record) == 0:
-                    return False   #####   کامند اشتباه
+                    return False  #####   کامند اشتباه
                 else:
                     enc_dir_name += [record[0][1]]
-        enc_path= '/'.join(enc_dir_name)
+        enc_path = '/'.join(enc_dir_name)
         client_message = {'message_type': 'client_command',
-                          'path': enc_path,'command_type': client_command,
-                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name}
+                          'path': enc_path, 'command_type': client_command,
+                          'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name, 'file_name': enc_file_name}
         #################       ارسال آخرین پیام کلاینت    
 
-
-
-
-    if client_command=='edit':
-        path=re.findall(r'^\w+\s(.*?)\s{0,1}',command_string)
-        if len(path)==0:
-            return False   #### کامند اشتباه
+    if client_command == 'edit':
+        path = re.findall(r'^\w+\s(.+)', command_string)
+        if len(path) == 0:
+            return False  #### کامند اشتباه
         if path[0][0] == '/':
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
-        file_name=directory_name.pop()
-        record=find_file(file_name)
-        if len(record)==0:
+        file_name = directory_name.pop()
+        record = find_file(file_name)
+        if len(record) == 0:
             return False  #### کامند اشتباه
-        enc_file_name=record[0][1]
-        enc_key=record[0][2]
-        iv=record[0][3]
+        enc_file_name = record[0][1]
+        enc_key = record[0][2]
+        iv = record[0][3]
         enc_dir_name = []
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.':
@@ -216,67 +215,94 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             else:
                 record = find_file(dir_name)
                 if len(record) == 0:
-                    return False   #####   کامند اشتباه
+                    return False  #####   کامند اشتباه
                 else:
                     enc_dir_name += [record[0][1]]
-        enc_path= '/'.join(enc_dir_name)
-        if 'shared_file'in path:
+        enc_path = '/'.join(enc_dir_name)
+        if 'Shared_file' in path:
             client_message = {'message_type': 'client_command',
-                          'path': enc_path,'command_type': client_command,
-                          'enc_seq_num': enc_seq_num,'Shared_file':'True','client_user_name': client_user_name,'file_name':enc_file_name}  
+                              'path': enc_path, 'command_type': client_command,
+                              'enc_seq_num': enc_seq_num, 'Shared_file': 'True', 'client_user_name': client_user_name,
+                              'file_name': enc_file_name}
+            print("okay")
+            messaging.send_message(client_message)
             ###############    فرستادن پیام وانتظار برای دریافت آن
             ################  دریافت پیام
-            with open(os.getcwd()+'/Aysan_private.txt','r') as file:
-                key_data=file.read()
-            private_key=rsa.PrivateKey.load_pkcs1(bytes.fromhex(key_data),'PEM')
-            enc_key=server_message['enc_key']
-            enc_iv=server_message['enc_iv']
-            key=rsa.decrypt(bytes.fromhex(enc_key),private_key).decode()
-            iv=rsa.decrypt(bytes.fromhex(enc_iv),private_key).decode()
-            enc_message=server_message['enc_message']
-            if len(enc_message)>0:
-                dec_messgae=file_Decryption(enc_message,key,iv)
-                if server_message['permission_type']=='r':
-                    return dec_messgae      #################   در حالتی که فقط مجوز خواندن وجود دارد، متن پرینت می شود
+            server_message = messaging.receive()
+            print(server_message)
+            with open(os.getcwd() + '/Aysan_private.txt', 'r') as file:
+                key_data = file.read()
+            private_key = rsa.PrivateKey.load_pkcs1(bytes.fromhex(key_data), 'PEM')
+
+            enc_key = server_message['enc_key']
+            enc_iv = server_message['enc_iv']
+
+            key = rsa.decrypt(bytes.fromhex(enc_key), private_key).decode()
+            iv = rsa.decrypt(bytes.fromhex(enc_iv), private_key).decode()
+
+            enc_message = server_message['enc_message']
+            if len(enc_message) > 0:
+                dec_messgae = file_Decryption(enc_message, key, iv)
+                if server_message['permission_type'] == 'r':
+                    return dec_messgae  #################   در حالتی که فقط مجوز خواندن وجود دارد، متن پرینت می شود
                 else:
-                    with open(os.getcwd()+'/src/client/cache_file/cache_file.txt','w') as file:
+                    with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
                         file.write(dec_messgae.decode())
-            elif server_message['permission_type']=='r':
+            elif server_message['permission_type'] == 'r':
                 return None
-            process=subprocess.Popen(["notepad.exe",os.getcwd+'/src/client/cache_file/cache_file.txt'])
+            process = subprocess.Popen(["notepad.exe", os.getcwd + '/src/client/cache_file/cache_file.txt'])
             process.wait()
-            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','r') as file:
-                file_content=file.read()
-            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','w') as file: 
-                file.write('')   
-            enc_file=file_encryption(file_content,key,iv)
-            client_message={'message_type': 'client_command',         ###### پارامتر های این پیام براساس شرایط، می تواند بر اساس پیام رسیده شده از سرور فرستاده شود
-                            'path': enc_path,'command_type': client_command,
-                            'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name,'enc_file':enc_file}
+            with open(os.getcwd + '/src/client/cache_file/cache_file.txt', 'r') as file:
+                file_content = file.read()
+            with open(os.getcwd + '/src/client/cache_file/cache_file.txt', 'w') as file:
+                file.write('')
+            enc_file = file_encryption(file_content, key, iv)
+            client_message = {'message_type': 'client_command',
+                              ###### پارامتر های این پیام براساس شرایط، می تواند بر اساس پیام رسیده شده از سرور فرستاده شود
+                              'path': enc_path, 'command_type': client_command,
+                              'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,
+                              'file_name': enc_file_name, 'enc_file': enc_file}
             ######## فرستادن پیام کلاینت
 
-                   
         else:
             client_message = {'message_type': 'client_command',
-                          'path': enc_path,'command_type': client_command,
-                          'enc_seq_num': enc_seq_num,'Shared_file':'False','client_user_name': client_user_name,'file_name':enc_file_name}        
+                              'path': enc_path, 'command_type': client_command,
+                              'enc_seq_num': enc_seq_num, 'Shared_file': 'False', 'client_user_name': client_user_name,
+                              'file_name': enc_file_name}
 
-        ########    فرستادن پیام و انتظار برای دریافت جواب آن  
-        #######  دریافت محتوای رمز شده
-            if len(enc_message)>0:
-                dec_messgae=file_Decryption(enc_message,enc_key,iv)
-                with open(os.getcwd()+'/src/client/cache_file/cache_file.txt','w') as file:
+            messaging.send_message(client_message)
+            server_message = messaging.receive()
+            print(server_message)
+            ########    فرستادن پیام و انتظار برای دریافت جواب آن
+            #######  دریافت محتوای رمز شده
+            enc_message = server_message['enc_message']
+
+            if len(enc_message) > 0:
+                dec_messgae = file_Decryption(enc_message, enc_key, iv)
+                with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
                     file.write(dec_messgae.decode())
-            process=subprocess.Popen(["notepad.exe",os.getcwd+'/src/client/cache_file/cache_file.txt'])
-            process.wait()
-            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','r') as file:
-                file_content=file.read()
-            with open(os.getcwd+'/src/client/cache_file/cache_file.txt','w') as file: 
-                file.write('')   
-            enc_file=file_encryption(file_content,enc_key,iv)
+
+            operating_system = platform.system()
+
+            if operating_system == "Windows":
+                process = subprocess.Popen(["notepad.exe", os.getcwd() + '/src/client/cache_file/cache_file.txt'])
+                process.wait()
+            else:
+                os.system("open " + os.getcwd() + '/src/client/cache_file/cache_file.txt')
+                time.sleep(9)
+
+            with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'r') as file:
+                file_content = file.read()
+            with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
+                file.write('')
+
+            iv = bytes.fromhex(iv)
+            enc_key = bytes.fromhex(enc_key)
+            enc_file = file_encryption(file_content, enc_key, iv)
             client_message = {'message_type': 'client_command',
-                              'path': enc_path,'command_type': client_command,
-                              'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,'file_name':enc_file_name,'enc_file':enc_file}
+                              'path': enc_path, 'command_type': client_command,
+                              'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,
+                              'file_name': enc_file_name, 'enc_file': enc_file}
+            messaging.send_message(client_message)
 
         ##################  فرستادن، محتوای رمز شده، سمت سرور
-
