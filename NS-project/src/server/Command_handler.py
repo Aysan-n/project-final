@@ -159,7 +159,7 @@ def server_command_handler(messaging, connection, client_message):
                 return False  ############ دلیل خطا به مسیر  ربط داره
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
-                if hash_string != record[0][5]:
+                if hash_string != record[5]:
                     print("wrong hash")
                     return False  #########     صحت در مخزن نقض شده است
             try:
