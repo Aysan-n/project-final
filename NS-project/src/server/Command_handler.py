@@ -68,19 +68,11 @@ def server_command_handler(messaging, connection, client_message):
         print(client_message)
 
     if client_message['command_type'] != 'mv':
-
         path = client_message['path']
-        print('path************',path)
         path_list = path.split('/')
-        print('pathlist************',path_list)
-
         cwd_list = record[4].split('/')[1:]
         if cwd_list[0]=='':
             cwd_list.remove('')
-        print('cwd_list*************',cwd_list)
-        print(len(cwd_list)+1)
-        print(path_list.count('..'))
-        print('**************',path_list.count('..')>=(len(cwd_list)+1))
         if path_list.count('..')>=(len(cwd_list)+1):
             server_message = {'message_type': 'authentication', 'status': 'invalid access'}
             messaging.send_message(server_message, connection)
@@ -430,6 +422,7 @@ def rm_handler(cwd_total, client_message):
         else:
             return True
     try:
+        print('***************',path+'.txt')
         os.remove(path + '.txt')
         delete_file(enc_file_name, client_message['client_user_name'])  ################################# new new
         return True

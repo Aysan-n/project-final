@@ -36,7 +36,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 enc_dir_name += [dir_name]
             else:
                 record = find_file(dir_name)
-                if (client_command == 'cd' or client_command == 'ls') and len(record) == 0:
+                if (client_command == 'cd' or client_command == 'ls') and len(record) == 0 and dir_name!='Shared_file':
                     return False
                 elif len(record) == 0:
                     enc_dir_name += [Encryption(dir_name)]
@@ -51,6 +51,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
     if client_command == 'rm':
         path = re.findall(r'^\w+\s-{0,1}r{0,1}\s{0,1}(\w+)', command_string)
         directory_name = path[0].split('/')
+        print('dir*********',directory_name)
         enc_dir_name = []
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.' or dir_name=='':
@@ -62,9 +63,9 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     enc_dir_name += [record[0][1]]
         enc_path = '/'.join(enc_dir_name)
-        print('*****************',enc_path)
+        print('enc_path*****************',enc_path)
         command_flag = re.findall(r'\s(-\w{0,1})\s{0,1}.+$',command_string)
-        print('*****************',command_flag)
+        print('command_flag*****************',command_flag)
         if len(command_flag)==0:
             command_flag=''
         else:
