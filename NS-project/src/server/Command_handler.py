@@ -393,6 +393,7 @@ def cd_handler_linux(cwd_total, critical_path, client_message):
 
 
 def touch_handler(cwd_total, client_message):
+
     path = client_message['path']
     if path[0] == '/':
         path = path[1:]
@@ -407,6 +408,8 @@ def touch_handler(cwd_total, client_message):
         savedPath = os.getcwd()
         os.chdir(cwd_total)
         path = '\\'.join(path)
+        if not os.path.isdir(path):
+            mkdir_handler(cwd_total, {"path":path})
         os.chdir(path)
         new_path = os.getcwd()
     os.chdir(savedPath)
@@ -433,6 +436,8 @@ def touch_handler_linux(cwd_total, client_message):
         savedPath = os.getcwd()
         os.chdir(cwd_total)
         path = '/'.join(path)
+        if not os.path.isdir(path):
+            mkdir_handler(cwd_total, {"path":path})
         os.chdir(path)
         new_path = os.getcwd()
     os.chdir(savedPath)
