@@ -243,7 +243,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             iv=bytes.fromhex(iv)
             enc_message = server_message['enc_message']
             print(server_message['permission_type'])
-            print('*************2')            #################################
+            print('*************2')
             if len(enc_message) > 0:
                 dec_messgae = file_Decryption(enc_message, key, iv)
                 if server_message['permission_type'] == 'r':
@@ -251,11 +251,17 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                 else:
                     with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
                         file.write(dec_messgae.decode())
-            elif server_message['permission_type'] == 'r':
+            elif len(enc_message) == 0:
                 print("FILE IS EMPTY")
                 return 0
-            process = subprocess.Popen(["notepad.exe", os.getcwd()+'/src/client/cache_file/cache_file.txt'])
-            process.wait()
+            operating_system = platform.system()
+
+            if operating_system == "Windows":
+                process = subprocess.Popen(["notepad.exe", os.getcwd() + '/src/client/cache_file/cache_file.txt'])
+                process.wait()
+            else:
+                os.system("open " + os.getcwd() + '/src/client/cache_file/cache_file.txt')
+                time.sleep(9)
             with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'r') as file:
                 file_content = file.read()
             with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
