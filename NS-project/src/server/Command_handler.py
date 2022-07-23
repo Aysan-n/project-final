@@ -107,21 +107,20 @@ def server_command_handler(messaging, connection, client_message):
 
         if 'Shared_file' not in path:
             record = find_file(file_name, client_message['client_user_name'])
-            if len(record) == 0 or check_path(path, record[0][4], cwd):
+            print('********path **',path,'**record4**',record[4],'***cwd***',cwd)
+            if len(record) == 0 or check_path(path, record[4], cwd):
                 print(1)
                 return False  ######## کامند اشتباه
             # try:
-            file_path = path + file_name + '.txt'
-            print(cwd + file_path)
-            with open(cwd + file_path, 'r') as file:
+            file_path = path +'/'+ file_name + '.txt'
+            with open(cwd +'/'+ file_path, 'r') as file:
                 file_content = file.read()
             # except:
             #     print(2)
             #     return False  ############ دلیل خطا به مسیر  ربط داره
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
-                if hash_string != record[0][5]:
-                    print(3)
+                if hash_string != record[5]:
                     return False  #########     صحت در مخزن نقض شده است
             server_message = {'message_type': 'command', 'Shared_file': 'False',
                               'enc_message': file_content}  ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.
@@ -133,10 +132,10 @@ def server_command_handler(messaging, connection, client_message):
             print(client_message)
             enc_file = client_message['enc_file']
             hash_string = (hashlib.sha1(private_key.encode() + enc_file.encode())).hexdigest()
-            if hash_string != record[0][5]:
+            if hash_string != record[5]:
                 update_file_integrity(file_name, client_message['client_user_name'], hash_string)
                 try:
-                    with open(cwd + file_path, 'w') as file:
+                    with open(cwd +'/'+file_path, 'w') as file:
                         file.write(enc_file)
                 except:
                     print("wtf")
@@ -624,7 +623,7 @@ def mv_handler(cwd_total, client_message):
 
 def check_path(client_path, file_path, cwd_total):
     client_path = os.path.join(cwd_total, client_path)
-    return os.path.normpath(client_path) == os.path.normpath(file_path)
+    return os.path.normpath(client_path) != os.path.normpath(file_path)
 
 
 def deserialize(message):
