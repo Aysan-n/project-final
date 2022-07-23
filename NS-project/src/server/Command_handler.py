@@ -107,8 +107,6 @@ def server_command_handler(messaging, connection, client_message):
             private_key = file.read()
         path = client_message['path']
         file_name = client_message['file_name']
-
-        print("MMM: " + path)
         if 'Shared_file' not in path:
             record = find_file(file_name, client_message['client_user_name'])
             if len(record) == 0 or check_path(path, record[4], cwd):
@@ -233,6 +231,9 @@ def server_command_handler(messaging, connection, client_message):
         path = client_message['path']
         if len(record) == 0 or check_path(path, record[4], cwd):
             return False  ######## کامند اشتباه
+        if len(record[2])>0:      ######## new new new     فایل با کاربر دیگری به اشتراگ گذاشته شده
+            file_name,enc_key,enc_iv=change_file_key(record[4],file_name,client_message['client_user_name'],record[5],cwd)
+        
         subscriber_username = client_message['subscriber_username']
         permission_type = client_message['flag']
         client_record = find_client(subscriber_username[0])
@@ -272,8 +273,9 @@ def server_command_handler(messaging, connection, client_message):
             cwd = os.getcwd() + "/Repository/" + client_record[3] + "/Shared_file/%s" % file_name
             os.remove(cwd + '.txt')
         update_shared_file(file_name, client_message['client_user_name'], [], '')
-        server_message = {'message_type': 'command_result', 'status': 'ok'}
-        messaging.send_message(server_message, connection)
+        #####3server_message = {'message_type': 'command_result', 'status': 'ok'}    #فکر کنم این ها دیگه نیاز نباشن
+        #####messaging.send_message(server_message, connection)
+        change_file_key(record[4],file_name,client_message['client_user_name'],record[5],cwd) ####################new new new new
         return True
 
     operating_system = platform.system()
@@ -580,7 +582,7 @@ class cd:
         os.chdir(self.savedPath)
 
 
-command = ['dir']
+
 
 
 def lcs(S, T):
@@ -654,3 +656,29 @@ def check_path(client_path, file_path, cwd_total):
 
 def deserialize(message):
     return json.loads(message.decode())
+
+def change_file_key(file_path,file_name,owner,integrity,cwd):    ##### مسیر  اصلی به فایل
+   with open(file_path+'/'+file_name+'.txt', 'r') as file:
+      file_content = file.read()
+   with open(os.getcwd() + '/private_key.pem', 'r') as file:
+      private_key = file.read()
+   os.remove(file_path+'/'+file_name+'.txt')
+   if len(file_content) > 0:
+      hash_string=(hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
+      if hash_string != integrity:
+         return False  #########     صحت در مخزن نقض شده است
+   delete_file(file_name,owner)
+   server_message = {'message_type': 'command','enc_file_name':file_name,
+                     'enc_message': file_content}
+   ################### ارسال پیام سرور
+   #################### انتظار برای دریافت پیام کلاینت
+   enc_file_name=client_message['file_name']
+   enc_file_content=client_message['enc_file']
+   new_hash_string=(hashlib.sha1(private_key.encode() + enc_file_content.encode())).hexdigest()   ##### براساس تایپ محتوای رمز شدهف مشخص شود که انکود شود یا خیر
+   with cd(cwd):
+      process = subprocess.Popen(['echo','%s' %enc_file_content,'>','%s.txt' %enc_file_name], shell=True,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      process.wait()
+   add_file(enc_file_name,owner,file_path)
+   update_file_integrity(enc_file_name,owner,new_hash_string)
+   return enc_file_name,client_message['enc_key'],client_message['enc_iv']

@@ -3,7 +3,7 @@ from multiprocessing import shared_memory
 import re, subprocess, os, rsa
 from File_Encryption import Encryption, file_encryption, seq_Encryption
 from File_Decryption import file_Decryption
-from key_managemnt_table import find_file, create
+from key_managemnt_table import find_file, create,find_decrypted,del_file
 import platform
 
 
@@ -204,6 +204,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                           'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name, 'file_name': enc_file_name}
         messaging.send_message(client_message)
         #################       ارسال آخرین پیام کلاینت
+        
 
     if client_command == 'edit':
         print("Entered")
@@ -330,3 +331,29 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
 
 
         ##################  فرستادن، محتوای رمز شده، سمت سرور
+def change_file_key(file_name,file_content):
+    record=find_decrypted(file_name)
+    if len(record) == 0:
+        return False  #### کامند اشتباه
+    enc_key = record[0][2]
+    iv = record[0][3]
+    enc_key=bytes.fromhex(enc_key)
+    iv=bytes.fromhex(iv)
+    file_name==file_Decryption(file_name, enc_key, iv)
+    if len(file_content) > 0:
+        dec_messgae=file_Decryption(file_content, enc_key, iv)
+    else:
+        dec_messgae=file_content
+    del_file(file_name)
+    enc_file_name=Encryption(file_name)
+    record=find_file(file_name)
+    enc_key=record[0][2]
+    iv=record[0][3]
+    enc_key=bytes.fromhex(enc_key)
+    iv=bytes.fromhex(iv)
+    enc_file=file_encryption(dec_messgae, enc_key, iv)
+    #######################################                             نکته مهم.کلید و ای وی باید با کلید عمومی کاربر رمز شوند
+    client_message = {'message_type': 'client_command',
+                      'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,    ######### در صورت لزوم سکوئنس نامبر هم اضافه شود.
+                      'file_name': enc_file_name, 'enc_file': enc_file,'enc_key':enc_key,'enc_iv':iv}  
+    ##################   ارسال پیام کلاینت

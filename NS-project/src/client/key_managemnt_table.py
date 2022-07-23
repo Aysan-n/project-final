@@ -65,3 +65,15 @@ def find_decrypted(enc_name):
         return records
     except sqlite3.Error as error:
         print("Failed to read data from key_management_table)", error)
+
+def del_file(file_name):
+    try:
+        connection = sqlite3.connect('key_management.db')
+        cursor = connection.cursor()
+        sql_select_query = """DELETE from key_management_table where file_name=? """
+        cursor.execute(sql_select_query, (file_name,))
+        connection.commit()
+        cursor.close()
+        connection.close()
+    except sqlite3.Error as error:
+        print("Failed to read data from key_management_table)", error)
