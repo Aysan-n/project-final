@@ -461,7 +461,7 @@ def ls_handler_linux(cwd_total, client_message):
     elif path[0] == '/':
         path = path[1:]
     with cd(cwd_total):
-        process = subprocess.Popen(["ls", "-l", "%s" % path], shell=True, stdout=subprocess.PIPE,
+        process = subprocess.Popen(["ls", "-l", "%s" % path], stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         process.wait()
     output, error = process.communicate()
