@@ -157,7 +157,6 @@ while True:
         cwd='/'
     elif action == "3":
         if seq_number is not None and session_key is not None:
-            username = input("Input your username:")
             command = input("Input command:")
             command_handler(username, messaging, command, seq_number, session_key, username,cwd)
             message = messaging.receive()
