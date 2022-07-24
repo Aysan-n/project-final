@@ -176,6 +176,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
     if client_command == 'revoke':
         path = re.findall(r'^\w+\s(.*)', command_string)
         if len(path) == 0:
+            print(1)
             return False  #### کامند اشتباه
         if path[0][0] == '/':
             path[0] = path[0][1:]
@@ -184,6 +185,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         record = find_file(file_name)
         print('*******',record)
         if len(record) == 0:
+            print(2)
             return False  #### کامند اشتباه
         enc_file_name = record[0][1]
         print('enc_file_name***********',enc_file_name)
@@ -194,6 +196,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             else:
                 record = find_file(dir_name)
                 if len(record) == 0:
+                    print(3)
                     return False  #####   کامند اشتباه
                 else:
                     enc_dir_name += [record[0][1]]
@@ -203,8 +206,9 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
                           'path': enc_path, 'command_type': client_command,
                           'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name, 'file_name': enc_file_name}
         messaging.send_message(client_message)
-        #################       ارسال آخرین پیام کلاینت
-        
+        server_message = messaging.receive()
+        print(server_message)
+        change_file_key(messaging, server_message["enc_file_name"] , server_message["enc_message"])
 
     if client_command == 'edit':
         print("Entered")
@@ -337,29 +341,36 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
 
 
         ##################  فرستادن، محتوای رمز شده، سمت سرور
-def change_file_key(file_name,file_content):
-    record=find_decrypted(file_name)
+
+
+def change_file_key(messaging, file_name, file_content):
+    record = find_decrypted(file_name)
+    print(record)
     if len(record) == 0:
         return False  #### کامند اشتباه
+    enc_key = record[2]
+    iv = record[3]
+    enc_key = bytes.fromhex(enc_key)
+    iv = bytes.fromhex(iv)
+    file_name = find_decrypted(file_name)[0]
+    if len(file_content) > 0:
+        print(file_content)
+        print("****")
+        dec_messgae = file_Decryption(file_content, enc_key, iv).decode()
+        print(dec_messgae)
+    else:
+        dec_messgae = file_content
+    del_file(file_name)
+    enc_file_name = Encryption(file_name)
+    record = find_file(file_name)
     enc_key = record[0][2]
     iv = record[0][3]
-    enc_key=bytes.fromhex(enc_key)
-    iv=bytes.fromhex(iv)
-    file_name==file_Decryption(file_name, enc_key, iv)
-    if len(file_content) > 0:
-        dec_messgae=file_Decryption(file_content, enc_key, iv)
-    else:
-        dec_messgae=file_content
-    del_file(file_name)
-    enc_file_name=Encryption(file_name)
-    record=find_file(file_name)
-    enc_key=record[0][2]
-    iv=record[0][3]
-    enc_key=bytes.fromhex(enc_key)
-    iv=bytes.fromhex(iv)
-    enc_file=file_encryption(dec_messgae, enc_key, iv)
-    #######################################                             نکته مهم.کلید و ای وی باید با کلید عمومی کاربر رمز شوند
-    client_message = {'message_type': 'client_command',
-                      'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,    ######### در صورت لزوم سکوئنس نامبر هم اضافه شود.
-                      'file_name': enc_file_name, 'enc_file': enc_file,'enc_key':enc_key,'enc_iv':iv}  
-    ##################   ارسال پیام کلاینت
+    enc_key = bytes.fromhex(enc_key)
+    iv = bytes.fromhex(iv)
+    enc_file = file_encryption(dec_messgae, enc_key, iv)
+    iv = iv.hex()
+    enc_key = enc_key.hex()
+    ######################################                             نکته مهم.کلید و ای وی باید با کلید عمومی کاربر رمز شوند
+    client_message = {'message_type': 'client_command',    ######### در صورت لزوم سکوئنس نامبر هم اضافه شود.
+                      'file_name': enc_file_name, 'enc_file': enc_file,'enc_key':enc_key,'enc_iv':iv}
+    messaging.send_message(client_message)
