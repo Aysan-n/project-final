@@ -7,8 +7,8 @@ from key_managemnt_table import find_file, create,find_decrypted,del_file
 import platform
 
 
-def command_handler(messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
-    create()
+def command_handler(user, messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
+    create(user)
     command_string = command
     support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv', 'share', 'revoke', 'edit']
     client_command = (re.findall(r'^\w+', command_string))[0]
@@ -28,18 +28,18 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             return True
         if path[0][0] == '/':
             path[0] = path[0][1:]
-        directory_name = path[0].split('/') 
+        directory_name = path[0].split('/')
         enc_dir_name = []
 
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
-                record = find_file(dir_name)
+                record = find_file(user,dir_name)
                 if (client_command == 'cd' or client_command == 'ls') and len(record) == 0 and dir_name!='Shared_file':
                     return False
                 elif len(record) == 0:
-                    enc_dir_name += [Encryption(dir_name)]
+                    enc_dir_name += [Encryption(user,dir_name)]
                 else:
                     enc_dir_name += [record[0][1]]
 
@@ -57,7 +57,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
-                record = find_file(dir_name)
+                record = find_file(user,dir_name)
                 if len(record) == 0:
                     return False
                 else:
@@ -83,7 +83,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_access_dir_name += [dir_name]
             else:
-                record = find_file(dir_name)
+                record = find_file(user, dir_name)
                 if len(record) == 0:
                     return False
                 else:
@@ -92,9 +92,9 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_des_dir_name += [dir_name]
             else:
-                record = find_file(dir_name)
+                record = find_file(user,dir_name)
                 if len(record) == 0:
-                    enc_des_dir_name += [Encryption(dir_name)]
+                    enc_des_dir_name += [Encryption(user,dir_name)]
                 else:
                     enc_des_dir_name += [record[0][1]]
         enc_access_path = '/'.join(enc_access_dir_name)
@@ -124,7 +124,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
         file_name = directory_name.pop()
-        record = find_file(file_name)
+        record = find_file(user,file_name)
         if len(record) == 0:
             print("ERROR: File not found.")
             return False  #### کامند اشتباه
@@ -136,7 +136,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
-                record = find_file(dir_name)
+                record = find_file(user,dir_name)
                 if len(record) == 0:
                     print("ERROR: Path not right.")
                     return False  #####   کامند اشتباه
@@ -182,7 +182,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
         file_name = directory_name.pop()
-        record = find_file(file_name)
+        record = find_file(user,file_name)
         print('*******',record)
         if len(record) == 0:
             print(2)
@@ -194,7 +194,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             if dir_name == '..' or dir_name == '.' or dir_name=='':
                 enc_dir_name += [dir_name]
             else:
-                record = find_file(dir_name)
+                record = find_file(user,dir_name)
                 if len(record) == 0:
                     print(3)
                     return False  #####   کامند اشتباه
@@ -208,7 +208,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         messaging.send_message(client_message)
         server_message = messaging.receive()
         print(server_message)
-        change_file_key(messaging, server_message["enc_file_name"] , server_message["enc_message"])
+        change_file_key(user,messaging, server_message["enc_file_name"] , server_message["enc_message"])
 
     if client_command == 'edit':
         print("Entered")
@@ -234,7 +234,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             server_message = messaging.receive()
             print('*************1')
             print(server_message)
-            with open(os.getcwd() + '/Aysan_private.txt', 'r') as file:
+            with open(os.getcwd() +"/"+ user +'_private.txt', 'r') as file:
                 key_data = file.read()
             private_key = rsa.PrivateKey.load_pkcs1(bytes.fromhex(key_data), 'PEM')
 
@@ -279,7 +279,7 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             messaging.send_message(client_message)
             print('*************3')
         else:
-            record = find_file(file_name)
+            record = find_file(user,file_name)
             if len(record) == 0:
                 print(2)
                 return False  #### کامند اشتباه
@@ -287,14 +287,14 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
             enc_key = record[0][2]
             iv = record[0][3]
             enc_key=bytes.fromhex(enc_key)
-            iv=bytes.fromhex(iv) 
+            iv=bytes.fromhex(iv)
             enc_dir_name = []
             for dir_name in directory_name:
                 if dir_name == '..' or dir_name == '.' or dir_name=='':     ######## new
                     enc_dir_name += [dir_name]
                 else:
                     print(dir_name)
-                    record = find_file(dir_name)
+                    record = find_file(user,dir_name)
                     if len(record) == 0:
                         print(3)
                         return False  #####   کامند اشتباه
@@ -343,8 +343,8 @@ def command_handler(messaging, command: str, seq_num: int, session_key: bytes, c
         ##################  فرستادن، محتوای رمز شده، سمت سرور
 
 
-def change_file_key(messaging, file_name, file_content):
-    record = find_decrypted(file_name)
+def change_file_key(user, messaging, file_name, file_content):
+    record = find_decrypted(user,file_name)
     print(record)
     if len(record) == 0:
         return False  #### کامند اشتباه
@@ -352,7 +352,7 @@ def change_file_key(messaging, file_name, file_content):
     iv = record[3]
     enc_key = bytes.fromhex(enc_key)
     iv = bytes.fromhex(iv)
-    file_name = find_decrypted(file_name)[0]
+    file_name = find_decrypted(user,file_name)[0]
     if len(file_content) > 0:
         print(file_content)
         print("****")
@@ -360,14 +360,14 @@ def change_file_key(messaging, file_name, file_content):
         print(dec_messgae)
     else:
         dec_messgae = file_content
-    del_file(file_name)
-    enc_file_name = Encryption(file_name)
-    record = find_file(file_name)
+    del_file(user,file_name)
+    enc_file_name = Encryption(user,file_name)
+    record = find_file(user,file_name)
     enc_key = record[0][2]
     iv = record[0][3]
     enc_key = bytes.fromhex(enc_key)
     iv = bytes.fromhex(iv)
-    enc_file = file_encryption(dec_messgae, enc_key, iv)
+    enc_file = file_encryption(user,dec_messgae, enc_key, iv)
     iv = iv.hex()
     enc_key = enc_key.hex()
     ######################################                             نکته مهم.کلید و ای وی باید با کلید عمومی کاربر رمز شوند
