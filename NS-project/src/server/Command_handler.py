@@ -61,8 +61,10 @@ def server_command_handler(messaging, connection, client_message):
         update_sequence_number(client_user_name, sequence_number)
 
     if client_message['command_type'] == 'share':
-        pub_key = client_record[5]
-        print(pub_key)
+        print(client_message["subscriber_username"][0])
+        subscriber_record = find_client(client_message["subscriber_username"][0])
+        print(subscriber_record)
+        pub_key = subscriber_record[5]
         server_message = {'message_type': 'key', 'key': pub_key}
         messaging.send_message(server_message, connection)
         client_message = deserialize(connection.recv(2048))
@@ -101,6 +103,7 @@ def server_command_handler(messaging, connection, client_message):
         ########################################################################################### کدجدید
 
     print(client_message['command_type'])
+
     if client_message['command_type'] == 'edit':
 
         with open(os.getcwd() + '/private_key.pem', 'r') as file:
@@ -122,6 +125,7 @@ def server_command_handler(messaging, connection, client_message):
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
                 if hash_string != record[5]:
+                    print(2)
                     return False  #########     صحت در مخزن نقض شده است
             server_message = {'message_type': 'command', 'Shared_file': 'False',
                               'enc_message': file_content}  ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.
@@ -217,6 +221,7 @@ def server_command_handler(messaging, connection, client_message):
         ######################################################################
 
     if client_message['command_type'] == 'share':
+
         file_name = client_message['file_name']
         enc_key = client_message['enc_key']
         enc_iv = client_message['enc_iv']
