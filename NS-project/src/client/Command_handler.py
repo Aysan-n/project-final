@@ -51,7 +51,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
     if client_command == 'rm':
         path = re.findall(r'^\w+\s-{0,1}r{0,1}\s{0,1}(\w+)', command_string)
         directory_name = path[0].split('/')
-        print('dir*********',directory_name)
+        #print('dir*********',directory_name)
         enc_dir_name = []
         for dir_name in directory_name:
             if dir_name == '..' or dir_name == '.' or dir_name=='':
@@ -63,9 +63,9 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
                 else:
                     enc_dir_name += [record[0][1]]
         enc_path = '/'.join(enc_dir_name)
-        print('enc_path*****************',enc_path)
+        #print('enc_path*****************',enc_path)
         command_flag = re.findall(r'\s(-\w{0,1})\s{0,1}.+$',command_string)
-        print('command_flag*****************',command_flag)
+        #print('command_flag*****************',command_flag)
         if len(command_flag)==0:
             command_flag=''
         else:
@@ -219,7 +219,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
         if path[0][0] == '/':
             path[0] = path[0][1:]
         directory_name = path[0].split('/')
-        print(directory_name)
+        #print(directory_name)
         file_name = directory_name.pop()
         if 'Shared_file' in path[0] or 'Shared_file' in cwd:
             client_message = {'message_type': 'client_command',
@@ -230,7 +230,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
             ###############    فرستادن پیام وانتظار برای دریافت آن
             ################  دریافت پیام
             server_message = messaging.receive()
-            print(server_message)
+            #print(server_message)
             with open(os.getcwd() +"/"+ user +'_private.txt', 'r') as file:
                 key_data = file.read()
             private_key = rsa.PrivateKey.load_pkcs1(bytes.fromhex(key_data), 'PEM')
@@ -243,7 +243,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
             key=bytes.fromhex(key)
             iv=bytes.fromhex(iv)
             enc_message = server_message['enc_message']
-            print(server_message['permission_type'])
+            #print(server_message['permission_type'])
             if len(enc_message) > 0:
                 dec_messgae = file_Decryption(enc_message, key, iv)
                 if server_message['permission_type'] == 'r':
@@ -273,11 +273,11 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
                               'enc_seq_num': enc_seq_num, 'client_user_name': client_user_name,
                               'file_name': file_name, 'enc_file': enc_file}
             messaging.send_message(client_message)
-            print('*************3')
+            #print('*************3')
         else:
             record = find_file(user,file_name)
             if len(record) == 0:
-                print(2)
+                print("No record found")
                 return False  #### کامند اشتباه
             enc_file_name = record[0][1]
             enc_key = record[0][2]
@@ -289,10 +289,10 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
                 if dir_name == '..' or dir_name == '.' or dir_name=='':     ######## new
                     enc_dir_name += [dir_name]
                 else:
-                    print(dir_name)
+                    #print(dir_name)
                     record = find_file(user,dir_name)
                     if len(record) == 0:
-                        print(3)
+                        print("No record found.")
                         return False  #####   کامند اشتباه
                     else:
                         enc_dir_name += [record[0][1]]
@@ -305,7 +305,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
 
             messaging.send_message(client_message)
             server_message = messaging.receive()
-            print(server_message)
+            #print(server_message)
             ########    فرستادن پیام و انتظار برای دریافت جواب آن
             #######  دریافت محتوای رمز شده
             enc_message = server_message['enc_message']
@@ -341,7 +341,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
 
 def change_file_key(user, messaging, file_name, file_content):
     record = find_decrypted(user,file_name)
-    print(record)
+    #print(record)
     if len(record) == 0:
         return False  #### کامند اشتباه
     enc_key = record[2]
@@ -350,6 +350,7 @@ def change_file_key(user, messaging, file_name, file_content):
     iv = bytes.fromhex(iv)
     file_name = find_decrypted(user,file_name)[0]
     if len(file_content) > 0:
+        print("****")
         print(file_content)
         print("****")
         dec_messgae = file_Decryption(file_content, enc_key, iv).decode()
