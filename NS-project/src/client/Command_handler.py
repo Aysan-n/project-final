@@ -251,7 +251,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
                 else:
                     with open(os.getcwd() + '/src/client/cache_file/cache_file.txt', 'w') as file:
                         file.write(dec_messgae.decode())
-            elif len(enc_message) == 0:
+            elif len(enc_message) == 0 and server_message['permission_type'] == "r":
                 print("FILE IS EMPTY")
                 return 0
             operating_system = platform.system()
