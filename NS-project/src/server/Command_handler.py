@@ -107,7 +107,7 @@ def server_command_handler(messaging, connection, client_message):
             private_key = file.read()
         path = client_message['path']
         file_name = client_message['file_name']
-        if 'Shared_file' not in path:
+        if 'Shared_file' not in path and client_message['Shared_file']!='True':
             record = find_file(file_name, client_message['client_user_name'])
             if len(record) == 0 or check_path(path, record[4], cwd):
                 print(1)

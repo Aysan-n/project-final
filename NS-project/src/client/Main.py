@@ -33,45 +33,46 @@ def decrypt_ls_linux(result):
                     beginning = text[0:last_index + 1]
                     if enc_file != "Shared_file":
                         if ".txt" not in enc_file:
-                            name = find_decrypted(user,enc_file)[0]
+                            name = find_decrypted(username,enc_file)[0]
                         else:
                             enc_file = enc_file[0: enc_file.rindex(".")]
-                            name = find_decrypted(user,enc_file)[0] + ".txt"
+                            name = find_decrypted(username,enc_file)[0] + ".txt"
                     else:
                         name = "Shared_file"
                     final = final + beginning + name + "\n"
         return final
     except:
-        return result
+        return '\n'.join(result)
 
 
 def decrypt_ls_windows(result):
-    # try:
-    result = result.split("\n")
-    final = ""
-    for text in result:
+    try:
+        result = result.split("\n")
+        final = ""
+        for text in result:
         # print(text)
-        if text != "":
-            if text[0:5] == "total" or text[0] == " ":
-                final = final + text + "\n"
-            else:
-                last_index = text.rindex(" ")
-                # print(last_index)
-                enc_file = text[last_index + 1:]
-                enc_file = enc_file[0:enc_file.index("\r")]
-                # print('***********encfile',enc_file)
-                beginning = text[0:last_index + 1]
-                if enc_file != "Shared_file" and enc_file[0] != "." and enc_file[0] != "..":
-                    if ".txt" not in enc_file:
-                        name = find_decrypted(user,enc_file)[0]
-                    else:
-                        enc_file = enc_file[0: enc_file.rindex(".")]
-                        name = find_decrypted(user,enc_file)[0] + ".txt"
+            if text != "":
+                if text[0:5] == "total" or text[0] == " ":
+                    final = final + text + "\n"
                 else:
-                    name = enc_file
-                final = final + beginning + name + "\n"
-                # print(final)
-    return final
+                    last_index = text.rindex(" ")
+                # print(last_index)
+                    enc_file = text[last_index + 1:]
+                    enc_file = enc_file[0:enc_file.index("\r")]
+                # print('***********encfile',enc_file)
+                    beginning = text[0:last_index + 1]
+                    if enc_file != "Shared_file" and enc_file[0] != "." and enc_file[0] != "..":
+                        if ".txt" not in enc_file:
+                           name = find_decrypted(username,enc_file)[0]
+                        else:
+                           enc_file = enc_file[0: enc_file.rindex(".")]
+                           name = find_decrypted(username,enc_file)[0] + ".txt"
+                    else:
+                        name = enc_file
+                    final = final + beginning + name + "\n"
+        return final
+    except:
+        return '\n'.join(result)
 
 
 # except:
@@ -88,7 +89,6 @@ def decrypt_ls(result):
 
 def decrypt_cd(user,result):
     error = result
-
     result = result[1:]
     # try:
     result = result.split("/")
@@ -98,6 +98,8 @@ def decrypt_cd(user,result):
             name = find_decrypted(user,file)[0]
             final = final + "/" + name
         print(final)
+        
+        return final
     except:
         print(error)
 
@@ -123,15 +125,16 @@ def create_key(user):
     return private_key, key_data
 
 
-with open(os.getcwd() + "/public_key.pem") as file:
+with open(os.getcwd() + "/src/client/public_key.pem") as file:
     data = file.read()
 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(data)
 
 messaging = Messaging()
-messaging.create_socket(2065)
+messaging.create_socket(2050)
 
 seq_number = None
 session_key = None
+
 
 
 while True:
@@ -142,20 +145,21 @@ while True:
     if action == "1":
         first_name = input("Input your first name:")
         last_name = input("Input your last name:")
-        user = input("Input your username:")
+        user_name= input("Input your username:")
         password = input("Input your password:")
-        my_key, my_public_key = create_key(user)
-        initiate_registration(messaging, public_key, first_name, last_name, user, password, my_public_key.hex())
+        my_key, my_public_key = create_key(user_name)
+        initiate_registration(messaging, public_key, first_name, last_name, user_name, password, my_public_key.hex())
     elif action == "2":
         username = input("Input your username:")
         password = input("Input your password:")
         seq_number, session_key = client_auth(messaging, public_key, username, password)
         seq_number = seq_number + 1
+        cwd='/'
     elif action == "3":
         if seq_number is not None and session_key is not None:
             username = input("Input your username:")
             command = input("Input command:")
-            command_handler(user, messaging, command, seq_number, session_key, username)
+            command_handler(username, messaging, command, seq_number, session_key, username,cwd)
             message = messaging.receive()
             print(message)
             if message["status"] == "ok":
@@ -164,10 +168,12 @@ while True:
                 if command[0:2] != 'cd' or ("Shared_file" in command):
                     if command[0:2] != 'ls':
                         print(message["status"])
+                        cwd=message["status"]
                     else:
                         print(decrypt_ls(message["status"]))
                 else:
-                    decrypt_cd(user, message["status"])
+                    
+                    cwd=decrypt_cd(username, message["status"])
                 seq_number = seq_number + 1
         else:
             print("Not authenticated yet.")

@@ -7,7 +7,7 @@ from key_managemnt_table import find_file, create,find_decrypted,del_file
 import platform
 
 
-def command_handler(user, messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str):
+def command_handler(user, messaging, command: str, seq_num: int, session_key: bytes, client_user_name: str,cwd:str):
     create(user)
     command_string = command
     support_command = ['mkdir', 'touch', 'cd', 'ls', 'rm', 'mv', 'share', 'revoke', 'edit']
@@ -221,9 +221,7 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
         directory_name = path[0].split('/')
         print(directory_name)
         file_name = directory_name.pop()
-
-        if 'Shared_file' in path[0]:
-            print("***")
+        if 'Shared_file' in path[0] or 'Shared_file' in cwd:
             client_message = {'message_type': 'client_command',
                               'path': path[0], 'command_type': client_command,
                               'enc_seq_num': enc_seq_num, 'Shared_file': 'True', 'client_user_name': client_user_name,
@@ -232,7 +230,6 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
             ###############    فرستادن پیام وانتظار برای دریافت آن
             ################  دریافت پیام
             server_message = messaging.receive()
-            print('*************1')
             print(server_message)
             with open(os.getcwd() +"/"+ user +'_private.txt', 'r') as file:
                 key_data = file.read()
@@ -247,7 +244,6 @@ def command_handler(user, messaging, command: str, seq_num: int, session_key: by
             iv=bytes.fromhex(iv)
             enc_message = server_message['enc_message']
             print(server_message['permission_type'])
-            print('*************2')
             if len(enc_message) > 0:
                 dec_messgae = file_Decryption(enc_message, key, iv)
                 if server_message['permission_type'] == 'r':
