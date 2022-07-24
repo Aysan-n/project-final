@@ -110,10 +110,10 @@ def server_command_handler(messaging, connection, client_message):
             private_key = file.read()
         path = client_message['path']
         file_name = client_message['file_name']
-        if 'Shared_file' not in path and client_message['Shared_file']!='True':
+        if 'Shared_file' not in path and client_message['Shared_file'] != 'True':
             record = find_file(file_name, client_message['client_user_name'])
             if len(record) == 0 or check_path(path, record[4], cwd):
-                print(1)
+                print("No record found.")
                 return False  ######## کامند اشتباه
             # try:
             file_path = path + '/' + file_name + '.txt'
@@ -125,6 +125,7 @@ def server_command_handler(messaging, connection, client_message):
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
                 if hash_string != record[5]:
+                    print('Hash not correct')
                     return False  #########     صحت در مخزن نقض شده است
             server_message = {'message_type': 'command', 'Shared_file': 'False',
                               'enc_message': file_content}  ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.
@@ -142,13 +143,13 @@ def server_command_handler(messaging, connection, client_message):
                     with open(cwd + '/' + file_path, 'w') as file:
                         file.write(enc_file)
                 except:
-                    print("wtf")
+                    print("File"+cwd + '/' + file_path +"not found.")
                     return False
         else:
-            print("MMM")
+            #print("MMM")
             record = find_shared_file(file_name, client_message['client_user_name'])
             if len(record) == 0:
-                print("client not found")
+                print("Client not found")
                 return False
             try:
                 file_path = record[4] + '/' + file_name + '.txt'
@@ -156,12 +157,12 @@ def server_command_handler(messaging, connection, client_message):
                 with open(file_path, 'r') as file:
                     file_content = file.read()
             except:
-                print("path not found")
+                print("Path "+ file_path+" not found")
                 return False  ############ دلیل خطا به مسیر  ربط داره
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
                 if hash_string != record[5]:
-                    print("wrong hash")
+                    print("Wrong hash")
                     return False  #########     صحت در مخزن نقض شده است
             try:
                 subscriber_file_path = path + '.txt'
@@ -169,42 +170,48 @@ def server_command_handler(messaging, connection, client_message):
                 with open(os.path.join(cwd, subscriber_file_path), 'r') as file:
                     shared_file_content = file.read()
             except:
-                print(1)
+                print("Path "+ os.path.join(cwd, subscriber_file_path) +" not found")
                 return False  ############ دلیل خطا به مسیر  ربط داره
             if len(shared_file_content) == 0:
-                print(2)
+                print("No shared file content.")
                 return False  ###############         خطا در محتوای فایل مشترک
 
             shared_file_content = shared_file_content.rstrip('\n').replace('"', '').strip().split('/')
-            print(shared_file_content)
-            print(record)
+            #print(shared_file_content)
+            #print(record)
 
             if shared_file_content[0] != file_name or shared_file_content[1] != record[1]:
-                print(3)
+                print("File name or content wrong")
                 return False  ###############         خطا در محتوای فایل مشترک
 
             permission_type = record[3]
 
             if len(permission_type) == 0:
-                print(4)
+                print("No permission.")
                 return False  ########    خطا در ذخیره ی فایل مشترک
 
             if permission_type in ['rw', 'wr']:
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
                                   'enc_message': file_content, 'enc_key': shared_file_content[2],
                                   'enc_iv': shared_file_content[3]}  ####  در صورت نیاز سکوئنس نامبر
+                #print('****************', server_message)
                 messaging.send_message(server_message, connection)
+                #print('****************************4')
                 client_message = deserialize(connection.recv(2048))
                 enc_file = client_message['enc_file']
                 hash_string = (hashlib.sha1(private_key.encode() + enc_file.encode())).hexdigest()
+                #print('****************************5')
                 if hash_string != record[5]:
                     update_file_integrity(file_name, record[1], hash_string)
+                    #print('****************************6')
                     try:
                         file_path = record[4] + '/' + file_name + '.txt'
                         with open(file_path, 'w') as file:
                             file.write(enc_file)
+                        #print('****************************7')
                         # return True
                     except:
+                        print("Wrong hash.")
                         return False
             else:
                 server_message = {'message_type': 'command', 'Shared_file': 'True', 'permission_type': permission_type,
@@ -223,7 +230,7 @@ def server_command_handler(messaging, connection, client_message):
         path = client_message['path']
         print(record)
         if len(record) == 0 or check_path(path, record[4], cwd):
-            print("***")
+            print("No record.")
             return False  ######## کامند اشتباه
         # if len(record[2]) > 0:  ######## new new new     فایل با کاربر دیگری به اشتراگ گذاشته شده
         #     file_name, enc_key, enc_iv = change_file_key(record[4], file_name, client_message['client_user_name'],
@@ -233,6 +240,7 @@ def server_command_handler(messaging, connection, client_message):
         permission_type = client_message['flag']
         client_record = find_client(subscriber_username[0])
         if len(client_record) == 0:
+            print("No record.")
             return False  ##########کامند اشتباه
 
         print(file_name, client_message['client_user_name'], subscriber_username, permission_type)
@@ -247,6 +255,7 @@ def server_command_handler(messaging, connection, client_message):
         output, error = process.communicate()
 
         if len(error) != 0:
+            print("Error occured.")
             return False  # دستور دچار خطا شد
 
     if client_message['command_type'] == 'revoke':
@@ -254,6 +263,7 @@ def server_command_handler(messaging, connection, client_message):
         record = find_file(file_name, client_message['client_user_name'])
         path = client_message['path']
         if len(record) == 0 or check_path(path, record[4], cwd):
+            print("Wrong command.")
             return False  ######## کامند اشتباه
         print(record)
         subscriber_username = record[2]
@@ -344,6 +354,7 @@ def ls_handler(cwd_total, client_message):
         process.wait()
     output, error = process.communicate()
     if len(error) != 0:
+        print("Command failed.")
         return False  # دستور دچار خطا شد
     else:
         result = re.sub(r'.*\r\n\r\n', '', output.decode())
@@ -473,6 +484,7 @@ def rm_handler(cwd_total, client_message):
         else:
             return True
     try:
+        #print('***************', path + '.txt')
         os.remove(path + '.txt')
         delete_file(enc_file_name, client_message['client_user_name'])  ################################# new new
         return True
@@ -492,6 +504,7 @@ def ls_handler_linux(cwd_total, client_message):
         process.wait()
     output, error = process.communicate()
     if len(error) != 0:
+        print("Error in ls")
         return False  # دستور دچار خطا شد
     else:
         result = re.sub(r'.*\r\n\r\n', '', output.decode())
@@ -516,10 +529,12 @@ def rm_handler_linux(cwd_total, client_message):
         else:
             return True
     try:
+        #print("***")
         os.remove(path + '.txt')
         delete_file(enc_file_name, client_message['client_user_name'])  ################## new new new
         return True
     except:
+        #print("**")
         return False
 
 
@@ -658,12 +673,16 @@ def change_file_key(messaging, connection, file_path, file_name, owner, integrit
         private_key = file.read()
     os.remove(file_path + '/' + file_name + '.txt')
     cwd = file_path
+    print(file_path)
     if len(file_content) > 0:
         hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
         if hash_string != integrity:
+            print("Wron hash")
             return False  #########     صحت در مخزن نقض شده است
     delete_file(file_name, owner)
 
+    print(file_name)
+    print(file_content)
     server_message = {'message_type': 'command', 'enc_file_name': file_name,
                       'enc_message': file_content}
     messaging.send_message(server_message, connection)
@@ -674,9 +693,11 @@ def change_file_key(messaging, connection, file_path, file_name, owner, integrit
     enc_file_content = client_message['enc_file']
     add_file(enc_file_name, owner, file_path)
     if len(enc_file_content)>0:
+        print('************1', enc_file_content)
         new_hash_string = (hashlib.sha1(
             private_key.encode() + enc_file_content.encode())).hexdigest()  ##### براساس تایپ محتوای رمز شدهف مشخص شود که انکود شود یا خیر
         update_file_integrity(enc_file_name, owner, new_hash_string)
+        print('************new hash   ', new_hash_string)
         with cd(cwd):
             process = subprocess.Popen('type nul >> "%s.txt"' % enc_file_name, shell=True, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
@@ -684,9 +705,10 @@ def change_file_key(messaging, connection, file_path, file_name, owner, integrit
             with open(cwd + '/' + enc_file_name+'.txt', 'w') as file:
                         file.write(enc_file_content)
         except:
-            print("wtf")
+            print("Wrong hash")
             return False
     else:
+        #print('************2')
         with cd(cwd):
             process = subprocess.Popen('type nul >> "%s.txt"' % enc_file_name, shell=True, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
