@@ -27,7 +27,7 @@ def Encryption(user_name,file_name:str):
         enc_file_name=cipher.encrypt(pad(file_name.encode(),16,style='pkcs7')).hex()
         insert(user_name,file_name,enc_file_name,key,iv)
         return enc_file_name
-def file_encryption(content,key,iv):
+def file_encryption(user,content,key,iv):
     cipher=AES.new(key, AES.MODE_CBC, iv)
     enc=cipher.encrypt(pad(content.encode(),16,style='pkcs7')).hex()
     return enc
