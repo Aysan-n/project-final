@@ -682,7 +682,7 @@ def change_file_key(messaging, connection, file_path, file_name, owner, integrit
     new_hash_string = (hashlib.sha1(
         private_key.encode() + enc_file_content.encode())).hexdigest()  ##### براساس تایپ محتوای رمز شدهف مشخص شود که انکود شود یا خیر
     with cd(cwd):
-        process = subprocess.Popen(['echo', '%s' % enc_file_content, '>', '%s.txt' % enc_file_name], shell=True,
+        process = subprocess.Popen("echo %s > %s.txt" % (enc_file_content, enc_file_name), shell=True,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
     add_file(enc_file_name, owner, file_path)
