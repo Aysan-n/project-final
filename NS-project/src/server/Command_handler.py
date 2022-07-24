@@ -125,7 +125,7 @@ def server_command_handler(messaging, connection, client_message):
             if len(file_content) > 0:
                 hash_string = (hashlib.sha1(private_key.encode() + file_content.encode())).hexdigest()
                 if hash_string != record[5]:
-                    print(2)
+                    print('***********hash',hash_string,'********record ',record[5])
                     return False  #########     صحت در مخزن نقض شده است
             server_message = {'message_type': 'command', 'Shared_file': 'False',
                               'enc_message': file_content}  ##### این پیام باید به سمت کلاینت فرستاده شود، در صورت لازم، سکوئنس نامبر هم باید اضافه شود.
@@ -684,12 +684,26 @@ def change_file_key(messaging, connection, file_path, file_name, owner, integrit
     client_message = deserialize(connection.recv(2048))
     enc_file_name = client_message['file_name']
     enc_file_content = client_message['enc_file']
-    new_hash_string = (hashlib.sha1(
-        private_key.encode() + enc_file_content.encode())).hexdigest()  ##### براساس تایپ محتوای رمز شدهف مشخص شود که انکود شود یا خیر
-    with cd(cwd):
-        process = subprocess.Popen("echo %s > %s.txt" % (enc_file_content, enc_file_name), shell=True,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        process.wait()
     add_file(enc_file_name, owner, file_path)
-    update_file_integrity(enc_file_name, owner, new_hash_string)
-    return enc_file_name, client_message['enc_key'], client_message['enc_iv']
+    if len(enc_file_content)>0:
+        print('************1', enc_file_content)
+        new_hash_string = (hashlib.sha1(
+            private_key.encode() + enc_file_content.encode())).hexdigest()  ##### براساس تایپ محتوای رمز شدهف مشخص شود که انکود شود یا خیر
+        update_file_integrity(enc_file_name, owner, new_hash_string)
+        print('************new hash   ', new_hash_string)
+        with cd(cwd):
+            process = subprocess.Popen('type nul >> "%s.txt"' % enc_file_name, shell=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        try:
+            with open(cwd + '/' + enc_file_name+'.txt', 'w') as file:
+                        file.write(enc_file_content)
+        except:
+            print("wtf")
+            return False
+    else:
+        print('************2')
+        with cd(cwd):
+            process = subprocess.Popen('type nul >> "%s.txt"' % enc_file_name, shell=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+            process.wait()
+    return enc_file_name

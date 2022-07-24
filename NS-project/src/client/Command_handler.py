@@ -363,7 +363,10 @@ def change_file_key(user, messaging, file_name, file_content):
     iv = record[0][3]
     enc_key = bytes.fromhex(enc_key)
     iv = bytes.fromhex(iv)
-    enc_file = file_encryption(dec_messgae, enc_key, iv)
+    if len(dec_messgae)>0:
+        enc_file = file_encryption(dec_messgae, enc_key, iv)
+    else:
+        enc_file=dec_messgae
     iv = iv.hex()
     enc_key = enc_key.hex()
     ######################################                             نکته مهم.کلید و ای وی باید با کلید عمومی کاربر رمز شوند
