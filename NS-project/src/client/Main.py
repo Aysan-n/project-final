@@ -101,7 +101,8 @@ def decrypt_cd(user,result):
         
         return final
     except:
-        return result
+        print(result[0])
+        return result[0]
 
 
 def create_key(user):
@@ -158,7 +159,6 @@ while True:
     elif action == "3":
         if seq_number is not None and session_key is not None:
             command = input("Input command:")
-            print('cwd**********',cwd)
             command_handler(username, messaging, command, seq_number, session_key, username,cwd)
             message = messaging.receive()
             print(message)
@@ -170,7 +170,7 @@ while True:
                         print(message["status"])
                     else:
                         print(decrypt_ls(message["status"]))
-                else:
+                elif command[0:2] == 'cd':
                     cwd=decrypt_cd(username, message["status"])
                 seq_number = seq_number + 1
         else:
