@@ -133,9 +133,6 @@ messaging.create_socket(2065)
 seq_number = None
 session_key = None
 
-user = input("Who are you?")
-
-my_key, my_public_key = create_key(user)
 
 while True:
     action = input("Press\n"
@@ -145,9 +142,10 @@ while True:
     if action == "1":
         first_name = input("Input your first name:")
         last_name = input("Input your last name:")
-        username = input("Input your username:")
+        user = input("Input your username:")
         password = input("Input your password:")
-        initiate_registration(messaging, public_key, first_name, last_name, username, password, my_public_key.hex())
+        my_key, my_public_key = create_key(user)
+        initiate_registration(messaging, public_key, first_name, last_name, user, password, my_public_key.hex())
     elif action == "2":
         username = input("Input your username:")
         password = input("Input your password:")
